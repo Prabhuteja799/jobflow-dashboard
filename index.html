@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content="JobFlow Intelligence Dashboard — track, filter, and apply to jobs with AI-powered matching."/>
 <title>JobFlow · Intelligence Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -123,6 +124,7 @@
   --c-accent:   #3b82f6;
   --c-accent-bg: rgba(59, 130, 246, 0.1);
   --c-accent-text: #60a5fa;
+  --c-accent-hover: #2563eb;
 
   --c-strong-text: #4ade80;
   --c-maybe-text: #fbbf24;
@@ -156,6 +158,7 @@
     --c-accent:   #3b82f6;
     --c-accent-bg: rgba(59, 130, 246, 0.1);
     --c-accent-text: #60a5fa;
+    --c-accent-hover: #2563eb;
     --c-strong-text: #4ade80;
     --c-maybe-text: #fbbf24;
     --c-flag-text: #fb923c;
@@ -163,45 +166,6 @@
   }
 }
 
-.btn-resume {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border-radius: var(--r-sm);
-  background: var(--c-accent-bg);
-  color: var(--c-accent-text);
-  font-size: 11px;
-  font-weight: 500;
-  text-decoration: none;
-  border: 1px solid rgba(37,99,235,0.2);
-  transition: background var(--dur-fast), transform var(--dur-fast);
-  white-space: nowrap;
-}
-.btn-resume:hover {
-  background: var(--c-accent);
-  color: #fff;
-  transform: translateY(-1px);
-}
-.btn-panel-resume {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  border-radius: var(--r-md);
-  background: var(--c-accent-bg);
-  color: var(--c-accent-text);
-  font-size: 13px;
-  font-weight: 500;
-  text-decoration: none;
-  border: 1px solid rgba(37,99,235,0.2);
-  transition: background var(--dur-base), transform var(--dur-fast);
-}
-.btn-panel-resume:hover {
-  background: var(--c-accent);
-  color: #fff;
-  transform: translateY(-1px);
-}
 /* ─── Global color transition ─── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -240,7 +204,7 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   HEADER
+   HEADER — Professional SaaS Navbar
    ═══════════════════════════════════════════════════════════ */
 
 header {
@@ -253,139 +217,167 @@ header {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.header-inner {
+/* Two-row nav: brand row + filter row */
+.nav-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 14px 0;
-  flex-wrap: wrap;
+  gap: 20px;
+  padding: 0 32px;
+  height: 58px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
+.nav-bottom {
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  height: 42px;
+  gap: 0;
+}
+
+/* ─── Logo ─── */
 .logo {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   text-decoration: none;
   flex-shrink: 0;
 }
 
 .logo-mark {
-  width: 28px;
-  height: 28px;
-  background: var(--c-accent);
-  border-radius: 7px;
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(145deg, #3b6ff6 0%, #6d28d9 100%);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.12) inset, 0 2px 10px rgba(59,111,246,0.4);
+  transition: box-shadow var(--dur-base);
+}
+.logo:hover .logo-mark {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.18) inset, 0 4px 16px rgba(59,111,246,0.55);
 }
 
 .logo-mark svg {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   fill: white;
 }
 
-.logo-text {
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-}
-
-.logo-text span {
-  color: var(--text-muted);
-  font-weight: 400;
-}
-
-/* ─── Header stats ─── */
-.header-stats {
+.logo-wordmark {
   display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: wrap;
-  flex: 1;
-  justify-content: center;
+  flex-direction: column;
+  gap: 1px;
 }
 
-.stat-pill {
+.logo-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.logo-sub {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  line-height: 1;
+}
+
+/* ─── Nav center search ─── */
+.nav-search {
+  flex: 1;
+  max-width: 360px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-pill);
+  padding: 0 14px;
+  transition: border-color var(--dur-base), box-shadow var(--dur-base), background var(--dur-base);
+}
+.nav-search:focus-within {
+  background: var(--bg-surface);
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px var(--c-accent-bg);
+}
+.nav-search svg { color: var(--text-faint); flex-shrink: 0; }
+.nav-search input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-primary);
+  min-width: 0;
+}
+.nav-search input::placeholder { color: var(--text-faint); }
+.nav-search-kbd {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-faint);
+  background: var(--bg-surface-3);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+  font-family: var(--font-sans);
+}
+
+/* ─── Nav right ─── */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Live jobs chip */
+.nav-jobs-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
+  gap: 7px;
   font-size: 12.5px;
   font-weight: 500;
   color: var(--text-muted);
-  cursor: pointer;
-  user-select: none;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-pill);
+  padding: 6px 13px;
   white-space: nowrap;
-  box-shadow: var(--shadow-xs);
-  transition: all var(--dur-base) var(--ease-out);
 }
-
-.stat-pill:hover {
-  border-color: var(--border-default);
-  color: var(--text-secondary);
-  background: var(--bg-surface-2);
-}
-
-.stat-pill.active-pill {
-  background: var(--bg-surface-2);
-  border-color: var(--border-strong);
+.nav-jobs-chip strong {
   color: var(--text-primary);
-}
-
-.stat-count {
-  font-weight: 600;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-
-.stat-indicator {
-  width: 6px;
-  height: 6px;
+.nav-dot-live {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34,197,94,0.25);
+  animation: livepulse 2.5s infinite;
   flex-shrink: 0;
 }
 
-.si-strong  { background: #22c55e; }
-.si-maybe   { background: #f59e0b; }
-.si-weak    { background: #6b7280; }
-.si-applied { background: var(--c-accent); }
-.si-flagged { background: #f97316; }
-.si-no      { background: #ef4444; }
-
-/* Separator between pill groups */
-.stat-sep {
+/* Divider */
+.nav-divider {
   width: 1px;
-  height: 16px;
+  height: 20px;
   background: var(--border-default);
   flex-shrink: 0;
-  align-self: center;
 }
 
-/* ─── Header right: theme toggle + total ─── */
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-.total-label {
-  font-size: 12px;
-  color: var(--text-faint);
-  font-variant-numeric: tabular-nums;
-}
-
-.total-label strong {
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-/* ─── Theme toggle ─── */
+/* Theme toggle */
 .theme-toggle {
   display: flex;
   align-items: center;
@@ -393,44 +385,118 @@ header {
   border: 1px solid var(--border-default);
   border-radius: var(--r-pill);
   padding: 3px;
-  gap: 2px;
-  box-shadow: var(--shadow-xs);
+  gap: 1px;
 }
-
 .theme-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 28px;
-  height: 24px;
-  border-radius: 100px;
+  height: 26px;
+  border-radius: 999px;
   border: none;
   background: transparent;
   cursor: pointer;
   color: var(--text-faint);
-  font-size: 13px;
   transition: all var(--dur-base) var(--ease-out);
-  position: relative;
 }
-
-.theme-btn:hover {
-  color: var(--text-secondary);
-}
-
+.theme-btn:hover { color: var(--text-secondary); }
 .theme-btn.active {
   background: var(--bg-page);
   color: var(--text-primary);
   box-shadow: var(--shadow-xs);
 }
 
+/* ─── Filter tab bar (bottom row) ─── */
+.nav-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  height: 100%;
+}
+.nav-tabs::-webkit-scrollbar { display: none; }
+
+.nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-faint);
+  white-space: nowrap;
+  transition: color var(--dur-base), border-color var(--dur-base), background var(--dur-base);
+  user-select: none;
+  position: relative;
+  margin-bottom: -1px; /* sit on border-bottom of nav-bottom */
+}
+.nav-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
+.nav-tab.active-pill {
+  color: var(--c-accent);
+  font-weight: 600;
+  border-bottom-color: var(--c-accent);
+}
+
+.nav-tab-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.nav-tab-count {
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: var(--bg-surface-3);
+  border-radius: var(--r-pill);
+  padding: 1px 6px;
+  color: var(--text-faint);
+  min-width: 20px;
+  text-align: center;
+  transition: all var(--dur-base);
+}
+.nav-tab.active-pill .nav-tab-count {
+  background: rgba(37,99,235,0.12);
+  color: var(--c-accent);
+}
+
+.nav-tab-sep {
+  width: 1px;
+  background: var(--border-subtle);
+  align-self: center;
+  height: 16px;
+  flex-shrink: 0;
+  margin: 0 6px;
+}
+
+/* ─── backward compat ─── */
+.si-strong  { background: #22c55e; }
+.si-maybe   { background: #f59e0b; }
+.si-weak    { background: #6b7280; }
+.si-applied { background: var(--c-accent); }
+.si-flagged { background: #f97316; }
+.si-no      { background: #ef4444; }
+
 /* ═══════════════════════════════════════════════════════════
    CONTROLS
    ═══════════════════════════════════════════════════════════ */
 
 .controls-section {
-  padding: 24px 0 20px;
+  padding: 16px 28px 14px;
   border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: 20px;
+  background: var(--bg-base);
 }
 
 .controls-row {
@@ -503,6 +569,24 @@ header {
 }
 
 .ctrl-select:focus { border-color: var(--c-accent); }
+
+.ctrl-toggle {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  color: var(--text-muted);
+  padding: 0 14px;
+  border-radius: var(--r-md);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  height: 40px;
+  white-space: nowrap;
+  box-shadow: var(--shadow-xs);
+  transition: all var(--dur-base);
+}
+.ctrl-toggle:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.ctrl-toggle.active { background: rgba(234,88,12,0.08); border-color: rgba(234,88,12,0.3); color: var(--c-flag-text); }
 
 .ctrl-select.has-value {
   color: var(--c-accent-text);
@@ -659,116 +743,282 @@ header {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   GRID
+   TWO-PANE RESIZABLE LAYOUT
+   ═══════════════════════════════════════════════════════════ */
+
+.split-layout {
+  display: flex;
+  height: calc(100vh - 100px);
+  height: calc(100dvh - 100px);
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg-base);
+  position: relative; /* establish stacking context for z-index */
+}
+
+/* ─── Left pane ─── */
+.jobs-list-pane {
+  width: 420px;
+  min-width: 260px;
+  max-width: 65vw;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base);
+  overflow: hidden;
+  /* no border-right — divider handles that */
+}
+
+.jobs-list-header {
+  padding: 12px 16px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-base);
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.jobs-list-inner {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px 32px;
+}
+
+.jobs-list-inner::-webkit-scrollbar { width: 4px; }
+.jobs-list-inner::-webkit-scrollbar-track { background: transparent; }
+.jobs-list-inner::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+/* ─── Drag handle ─── */
+.pane-divider {
+  width: 5px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  position: relative;
+  background: transparent;
+  transition: background 120ms;
+  z-index: 10;
+  user-select: none;
+}
+
+.pane-divider::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 2px;
+  width: 1px;
+  background: var(--border-subtle);
+  transition: background 120ms, left 120ms, width 120ms;
+}
+
+.pane-divider:hover::after,
+.pane-divider.dragging::after {
+  left: 1px;
+  width: 3px;
+  background: var(--c-accent);
+}
+
+.pane-divider-grip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity 140ms;
+  pointer-events: none;
+}
+
+.pane-divider:hover .pane-divider-grip,
+.pane-divider.dragging .pane-divider-grip {
+  opacity: 1;
+}
+
+.pane-divider-grip span {
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--c-accent);
+}
+
+/* ─── Right pane ─── */
+.detail-pane {
+  flex: 1;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base);
+  overflow: hidden;
+  position: relative;
+}
+
+.detail-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.detail-empty-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--r-xl);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+
+.detail-empty h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: -0.01em;
+}
+
+.detail-empty p { font-size: 13px; color: var(--text-faint); }
+
+/* ═══════════════════════════════════════════════════════════
+   JOB LIST CARD (row style, like the screenshot)
    ═══════════════════════════════════════════════════════════ */
 
 .jobs-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(352px, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-
-/* ═══════════════════════════════════════════════════════════
-   CARD — Premium redesign
-   ═══════════════════════════════════════════════════════════ */
 
 .job-card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--r-xl);
-  padding: 20px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  padding: 18px 18px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-xs);
-  animation: cardIn 0.35s var(--ease-out) both;
+  animation: cardIn 0.3s var(--ease-out) both;
   transition:
     border-color var(--dur-base) var(--ease-out),
     box-shadow var(--dur-base) var(--ease-out),
-    transform var(--dur-base) var(--ease-out),
     background-color 240ms var(--ease-in-out);
+  box-shadow: var(--shadow-xs);
 }
 
 .job-card:hover {
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-md);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
 
-.job-card:active {
-  transform: translateY(0);
-  box-shadow: var(--shadow-xs);
-}
-
-/* Score-based top accent line — subtle, 2px */
-.job-card.card-strong { border-top: 2px solid rgba(34, 197, 94, 0.4); }
-.job-card.card-maybe  { border-top: 2px solid rgba(245, 158, 11, 0.35); }
-.job-card.card-weak   { /* no accent */ }
-.job-card.card-no     { border-top: 2px solid rgba(239, 68, 68, 0.25); }
-
-.job-card.applied {
+.job-card.selected {
+  border-color: var(--c-accent);
   background: var(--bg-surface);
-  border-color: rgba(34, 197, 94, 0.18);
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.18), var(--shadow-sm);
 }
 
-/* ─── Applied / Ignored ribbon ─── */
-.applied-ribbon {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--c-strong-bg);
-  border: 1px solid var(--c-strong-border);
-  color: var(--c-strong-text);
-  border-radius: var(--r-pill);
-  padding: 2px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  z-index: 2;
-}
+/* Score-based left accent strip */
+.job-card.card-strong { border-left: 3px solid #22c55e; }
+.job-card.card-maybe  { border-left: 3px solid #f59e0b; }
+.job-card.card-no     { border-left: 3px solid #ef4444; }
 
-.ignored-ribbon {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--c-no-bg);
-  border: 1px solid var(--c-no-border);
-  color: var(--c-no-text);
-  border-radius: var(--r-pill);
-  padding: 2px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  z-index: 2;
-}
+.job-card.applied { border-color: rgba(34,197,94,0.3); }
 
-/* ─── Card top row ─── */
-.card-top {
+/* ─── Card layout: row ─── */
+.card-row {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 14px;
-  gap: 12px;
+  gap: 14px;
 }
 
-.company-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--r-sm);
+.card-body { flex: 1; min-width: 0; }
+
+.card-score-col { flex-shrink: 0; padding-top: 2px; }
+
+.job-position {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.job-company {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.job-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.meta-icon { width: 13px; height: 13px; opacity: 0.65; }
+
+.card-tags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  align-items: center;
+}
+
+/* ─── Score badge (circle) ─── */
+.score-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: 13px;
-  color: white;
+  font-size: 13.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
   flex-shrink: 0;
-  letter-spacing: -0.01em;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
 }
+
+.score-badge.sb-strong { background: linear-gradient(135deg, #16a34a, #22c55e); }
+.score-badge.sb-maybe  { background: linear-gradient(135deg, #d97706, #f59e0b); }
+.score-badge.sb-weak   { background: linear-gradient(135deg, #4b5563, #6b7280); }
+.score-badge.sb-no     { background: linear-gradient(135deg, #dc2626, #ef4444); }
+.score-badge.sb-blue   { background: linear-gradient(135deg, #1d4ed8, #3b82f6); }
+
+/* ─── Status ribbons — now shown as small inline badges ─── */
+.applied-ribbon, .ignored-ribbon, .unavail-ribbon {
+  display: none; /* handled by card-tags badges now */
+}
+
+/* ─── Card top row — hidden in row layout, score-ring replaced by score-badge ─── */
+.card-top { display: none; }
+.score-ring-wrap { display: none; }
+.company-avatar { display: none; }
 
 /* ─── Score ring ─── */
 .score-ring-wrap {
@@ -812,29 +1062,39 @@ header {
   border-color: var(--c-no-border);
   color: var(--c-no-text);
 }
+.btn-status.is-unavail {
+  background: rgba(168, 85, 247, 0.08);
+  border-color: rgba(168, 85, 247, 0.3);
+  color: #c084fc;
+}
 
 /* ─── Status dropdown menu ─── */
 .status-menu {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-lg);
-  min-width: 130px;
-  z-index: 100;
+  min-width: 160px;
+  z-index: 9999;
   overflow: hidden;
   display: none;
+  animation: fadeUp 0.12s var(--ease-out) both;
+}
+/* Panel footer menu uses fixed positioning to escape overflow:hidden containers */
+#sm-panel {
+  position: fixed;
+  bottom: auto;
+  left: auto;
+  z-index: 500;
 }
 .status-menu.open { display: block; }
 .status-menu-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 13px;
-  font-size: 12.5px;
+  gap: 9px;
+  padding: 10px 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
@@ -846,14 +1106,15 @@ header {
   width: 100%;
   text-align: left;
 }
-.status-menu-item:hover { background: var(--bg-surface-2); }
+.status-menu-item:hover { background: var(--bg-surface-2); color: var(--text-primary); }
 .status-menu-item.active { color: var(--text-primary); font-weight: 600; }
 .status-menu-item .dot {
-  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
 }
 .dot-applied  { background: #22c55e; }
 .dot-ignored  { background: #ef4444; }
-.dot-none     { background: var(--text-faint); }
+.dot-unavail  { background: #a855f7; }
+.dot-none     { background: var(--border-strong); }
 
 .score-ring {
   position: relative;
@@ -1094,118 +1355,77 @@ header {
 /* btn-mark replaced by btn-status above */
 
 /* ═══════════════════════════════════════════════════════════
-   SLIDE PANEL (replaces modal)
+   DETAIL PANEL (right pane, inline — fully integrated)
    ═══════════════════════════════════════════════════════════ */
 
-.panel-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 500;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  height: 100dvh;
-}
-
-.panel-overlay.open {
-  display: flex;
-}
-
-.panel-backdrop {
-  position: absolute;
-  inset: 0;
-  background: var(--bg-overlay);
-  opacity: 0;
-  transition: opacity var(--dur-panel) var(--ease-in-out);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-
-.panel-overlay.open .panel-backdrop {
-  opacity: 1;
-}
+.panel-overlay { display: none; }
+.panel-backdrop { display: none; }
 
 .panel {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 580px;
-  max-height: 88vh;
-  max-height: 88dvh;
-  background: var(--panel-bg);
-  border: 1px solid var(--border-default);
-  border-radius: var(--r-xl);
-  box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
+  height: 100%;
   overflow: hidden;
-  margin: 24px;
-  opacity: 0;
-  transform: translateY(16px) scale(0.98);
-  transition: opacity var(--dur-panel) var(--ease-out),
-              transform var(--dur-panel) var(--ease-out);
-}
-
-.panel-overlay.open .panel {
-  opacity: 1;
-  transform: translateY(0) scale(1);
+  background: var(--bg-base);
 }
 
 /* ─── Panel header ─── */
 .panel-head {
-  padding: 24px 24px 20px;
+  padding: 24px 28px 18px;
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
+  background: var(--bg-base);
 }
 
 .panel-head-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .panel-company-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   flex: 1;
 }
 
 .panel-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--r-sm);
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 800;
   color: white;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 .panel-company-info { flex: 1; min-width: 0; }
 
 .panel-title {
-  font-size: 15.5px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
   color: var(--text-primary);
-  line-height: 1.3;
-  margin-bottom: 2px;
+  line-height: 1.25;
+  margin-bottom: 4px;
 }
 
 .panel-sub {
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 14.5px;
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 .panel-close {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--bg-surface-2);
   border: 1px solid var(--border-default);
@@ -1214,7 +1434,6 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
   flex-shrink: 0;
   transition: all var(--dur-base) var(--ease-out);
 }
@@ -1227,7 +1446,7 @@ header {
 
 .panel-meta {
   display: flex;
-  gap: 6px;
+  gap: 7px;
   flex-wrap: wrap;
 }
 
@@ -1235,13 +1454,13 @@ header {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11.5px;
-  font-weight: 500;
-  padding: 3px 9px;
-  border-radius: var(--r-xs);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
   background: var(--bg-surface-2);
   border: 1px solid var(--border-subtle);
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 .panel-badge.badge-applied {
@@ -1253,28 +1472,29 @@ header {
 /* ─── Panel body ─── */
 .panel-body {
   flex: 1;
-  min-height: 0; /* critical: allows flex child to shrink below content size */
+  min-height: 0;
   overflow-y: auto;
-  padding: 20px 24px;
+  padding: 22px 28px 12px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
+  background: var(--bg-base);
 }
 
 .panel-body::-webkit-scrollbar { width: 4px; }
 .panel-body::-webkit-scrollbar-track { background: transparent; }
-.panel-body::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 2px; }
+.panel-body::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
 
 /* ─── Panel sections ─── */
 .panel-section {}
 
 .section-label {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 11.5px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-faint);
-  margin-bottom: 8px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
 }
 
 /* ─── Flags alert ─── */
@@ -1282,7 +1502,7 @@ header {
   background: var(--c-flag-bg);
   border: 1px solid var(--c-flag-border);
   border-radius: var(--r-md);
-  padding: 12px 14px;
+  padding: 14px 16px;
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -1294,16 +1514,16 @@ header {
   border-radius: 50%;
   background: var(--c-flag-text);
   flex-shrink: 0;
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .flags-alert-body {}
 
 .flags-alert-title {
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--c-flag-text);
-  margin-bottom: 7px;
+  margin-bottom: 8px;
 }
 
 .flags-alert-chips { display: flex; gap: 5px; flex-wrap: wrap; }
@@ -1314,7 +1534,7 @@ header {
   gap: 4px;
   padding: 3px 10px;
   border-radius: var(--r-xs);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   background: rgba(234, 88, 12, 0.1);
   border: 1px solid var(--c-flag-border);
@@ -1326,10 +1546,10 @@ header {
   background: var(--bg-surface-2);
   border: 1px solid var(--border-subtle);
   border-radius: var(--r-md);
-  padding: 14px 16px;
-  font-size: 13.5px;
+  padding: 16px 18px;
+  font-size: 14px;
   color: var(--text-secondary);
-  line-height: 1.7;
+  line-height: 1.75;
   font-family: var(--font-sans);
   font-weight: 400;
   letter-spacing: -0.01em;
@@ -1340,13 +1560,12 @@ header {
   background: var(--bg-surface-2);
   border: 1px solid var(--border-subtle);
   border-radius: var(--r-md);
-  padding: 16px;
-  font-size: 13px;
+  padding: 18px 20px;
+  font-size: 14px;
   color: var(--text-secondary);
-  line-height: 1.7;
+  line-height: 1.8;
   white-space: pre-wrap;
   font-family: var(--font-sans);
-  /* Own scrollable area so full letter is always reachable */
   max-height: 55vh;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1356,54 +1575,75 @@ header {
 .cover-text::-webkit-scrollbar-track { background: transparent; }
 .cover-text::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 2px; }
 
-/* ─── Panel footer ─── */
+/* ─── Job description (full, always visible) ─── */
+.job-desc-full {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  font-family: var(--font-sans);
+  letter-spacing: -0.005em;
+}
+
+/* ─── Panel sticky footer (Apply + Mark Status + Generate Resume) ─── */
 .panel-footer {
-  padding: 16px 24px;
+  padding: 14px 28px;
   border-top: 1px solid var(--border-subtle);
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
   flex-shrink: 0;
-  background: var(--panel-bg);
+  background: var(--bg-base);
+  flex-wrap: nowrap;
+  position: relative; /* so z-index stacks correctly */
+  overflow: visible;  /* allow status menu to pop above */
 }
 
 .btn-panel-apply {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   background: var(--c-accent);
   color: white;
   text-decoration: none;
-  padding: 9px 20px;
+  padding: 11px 24px;
   border-radius: var(--r-pill);
   font-family: var(--font-sans);
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: 700;
+  font-size: 14px;
   letter-spacing: -0.01em;
   transition: all var(--dur-base) var(--ease-out);
-  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-panel-apply:hover {
   background: var(--c-accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 16px rgba(37,99,235,0.38);
 }
 
 .btn-modal-mark {
-  border: 1px solid var(--c-strong-border);
-  color: var(--c-strong-text);
-  padding: 9px 18px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  padding: 11px 20px;
   border-radius: var(--r-pill);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--dur-base) var(--ease-out);
-  background: var(--c-strong-bg);
+  background: var(--bg-surface-2);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.btn-modal-mark:hover { background: rgba(34, 197, 94, 0.14); }
+.btn-modal-mark:hover {
+  background: var(--bg-surface-3);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
 
 .btn-modal-mark.unapply {
   background: var(--c-no-bg);
@@ -1411,30 +1651,67 @@ header {
   color: var(--c-no-text);
 }
 
-.btn-modal-mark.unapply:hover { background: rgba(220, 38, 38, 0.1); }
+.btn-modal-mark.unapply:hover { background: rgba(220,38,38,0.12); }
 
 .btn-copy {
   background: var(--bg-surface-2);
   border: 1px solid var(--border-default);
-  color: var(--text-muted);
-  padding: 9px 18px;
+  color: var(--text-secondary);
+  padding: 11px 18px;
   border-radius: var(--r-pill);
   font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--dur-base) var(--ease-out);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-copy:hover {
   color: var(--text-primary);
   border-color: var(--border-strong);
+  background: var(--bg-surface-3);
 }
 
 .copy-success {
   color: var(--c-strong-text) !important;
   border-color: var(--c-strong-border) !important;
+  background: var(--c-strong-bg) !important;
 }
+
+/* Resume button in footer */
+.btn-panel-resume-footer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  padding: 11px 20px;
+  border-radius: var(--r-pill);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--dur-base) var(--ease-out);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-panel-resume-footer:hover {
+  background: var(--bg-surface-3);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+.btn-panel-resume-footer.generating {
+  color: var(--text-faint);
+  border-style: dashed;
+  cursor: default;
+}
+
+/* Footer spacer */
+.footer-spacer { flex: 1; }
 
 /* ═══════════════════════════════════════════════════════════
    LOADING / ERROR
@@ -1861,7 +2138,6 @@ header {
 }
 .btn-jd-generate.loading .jd-spinner { display: block; }
 .btn-jd-generate.loading .jd-btn-text { opacity: 0.8; }
-@keyframes spin { to { transform: rotate(360deg); } }
 .jd-status {
   font-size: 12.5px;
   color: var(--text-muted);
@@ -1914,18 +2190,32 @@ header {
   border-style: solid;
 }
 
+@media (max-width: 900px) {
+  .split-layout { flex-direction: column; height: auto; overflow: visible; }
+  .jobs-list-pane { width: 100% !important; min-width: unset; max-width: unset; max-height: 55vh; }
+  .detail-pane { min-height: 60vh; min-width: unset; }
+  .pane-divider { display: none; }
+  .nav-search { max-width: 200px; }
+  .nav-search-kbd { display: none; }
+}
+
 @media (max-width: 768px) {
-  .jobs-grid { grid-template-columns: 1fr; }
-  .header-stats { display: none; }
   .controls-row { flex-direction: column; }
   .sort-group { flex-wrap: wrap; }
-  .panel { max-width: 100%; margin: 0; border-radius: 0; max-height: 100vh; }
-  .header-inner { padding: 12px 0; }
+  .nav-top { padding: 0 16px; gap: 12px; }
+  .nav-bottom { padding: 0 16px; }
+  .nav-search { max-width: 160px; }
+}
+
+@media (max-width: 560px) {
+  .nav-search { display: none; }
+  .nav-jobs-chip { display: none; }
+  .nav-divider { display: none; }
+  .nav-top { height: 50px; }
 }
 
 @media (max-width: 480px) {
   .container { padding: 0 16px; }
-  .header-right .total-label { display: none; }
 }
 
 </style>
@@ -1934,127 +2224,125 @@ header {
 
 <!-- ═══════════════ HEADER ═══════════════ -->
 <header>
-  <div class="container">
-    <div class="header-inner">
 
-      <!-- Logo -->
-      <a class="logo" href="#">
-        <div class="logo-mark">
-          <svg viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
-            <rect x="1" y="1" width="5" height="5" rx="1.2"/>
-            <rect x="8" y="1" width="5" height="5" rx="1.2"/>
-            <rect x="1" y="8" width="5" height="5" rx="1.2"/>
-            <rect x="8" y="8" width="5" height="5" rx="1.2" opacity="0.4"/>
-          </svg>
-        </div>
-        <span class="logo-text">JobFlow <span>Intelligence</span></span>
-      </a>
+  <!-- Row 1: Brand + Search + Controls -->
+  <div class="nav-top">
 
-      <!-- Stat pills — single source of truth for category filtering -->
-      <div class="header-stats">
-        <div class="stat-pill active-pill" id="pill-all" onclick="setCategory('all',null)">
-          All
-        </div>
-        <div class="stat-sep"></div>
-        <div class="stat-pill" id="pill-strong" onclick="setCategory('strong',null)">
-          <div class="stat-indicator si-strong"></div>
-          <span class="stat-count" id="count-strong">0</span> Strong
-        </div>
-        <div class="stat-pill" id="pill-maybe" onclick="setCategory('maybe',null)">
-          <div class="stat-indicator si-maybe"></div>
-          <span class="stat-count" id="count-maybe">0</span> Maybe
-        </div>
-        <div class="stat-pill" id="pill-weak" onclick="setCategory('weak',null)">
-          <div class="stat-indicator si-weak"></div>
-          <span class="stat-count" id="count-weak">0</span> Weak
-        </div>
-        <div class="stat-sep"></div>
-        <div class="stat-pill" id="pill-applied" onclick="setCategory('applied',null)">
-          <div class="stat-indicator si-applied"></div>
-          <span class="stat-count" id="count-applied">0</span> Applied
-        </div>
-        <div class="stat-pill" id="pill-flagged" onclick="setCategory('flagged',null)">
-          <div class="stat-indicator si-flagged"></div>
-          <span class="stat-count" id="count-flagged">0</span> Flagged
-        </div>
-        <div class="stat-pill" id="pill-no" onclick="setCategory('no',null)">
-          <div class="stat-indicator si-no"></div>
-          <span class="stat-count" id="count-no">0</span> No Match
-        </div>
+    <a class="logo" href="#">
+      <div class="logo-mark">
+        <svg viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="5" height="5" rx="1.2"/>
+          <rect x="8" y="1" width="5" height="5" rx="1.2"/>
+          <rect x="1" y="8" width="5" height="5" rx="1.2"/>
+          <rect x="8" y="8" width="5" height="5" rx="1.2" opacity="0.4"/>
+        </svg>
+      </div>
+      <div class="logo-wordmark">
+        <span class="logo-name">JobFlow</span>
+        <span class="logo-sub">Intelligence</span>
+      </div>
+    </a>
+
+    <!-- Search bar (mirrors the controls search input) -->
+    <div class="nav-search" onclick="document.getElementById('searchInput').focus()">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/>
+      </svg>
+      <input id="navSearchProxy" type="text" placeholder="Search jobs, companies, skills…" autocomplete="off"
+        oninput="document.getElementById('searchInput').value=this.value;document.getElementById('searchInput').dispatchEvent(new Event('input'))"
+      />
+      <span class="nav-search-kbd">⌘K</span>
+    </div>
+
+    <div class="nav-right">
+      <div class="nav-jobs-chip">
+        <div class="nav-dot-live"></div>
+        <strong id="total">0</strong>&nbsp;jobs
       </div>
 
-      <!-- Right: total + theme toggle -->
-      <div class="header-right">
-        <div class="total-label"><strong id="total">0</strong> jobs</div>
+      <div class="nav-divider"></div>
 
-        <!-- Theme toggle -->
-        <div class="theme-toggle" role="group" aria-label="Color theme">
-          <button class="theme-btn" id="themeLight" onclick="setTheme('light')" title="Light mode" aria-label="Light mode">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="3.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
-          </button>
-          <button class="theme-btn active" id="themeAuto" onclick="setTheme('auto')" title="Auto (system)" aria-label="Auto mode">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 1.5v11a5.5 5.5 0 010-11z"/></svg>
-          </button>
-          <button class="theme-btn" id="themeDark" onclick="setTheme('dark')" title="Dark mode" aria-label="Dark mode">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M6 1.5a6.5 6.5 0 100 13 6.5 6.5 0 010-13zm0 1.2a5.3 5.3 0 000 10.6c-3.01-.27-5.3-2.81-5.3-5.9S3.07 3.03 6.1 2.7z"/><path d="M9 3a4 4 0 100 8A4 4 0 009 3z" opacity="0.1"/></svg>
-          </button>
-        </div>
+      <div class="theme-toggle" role="group" aria-label="Color theme">
+        <button class="theme-btn" id="themeLight" onclick="setTheme('light')" title="Light" aria-label="Light mode">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="3.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+        </button>
+        <button class="theme-btn active" id="themeAuto" onclick="setTheme('auto')" title="Auto" aria-label="Auto mode">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 1.5v11a5.5 5.5 0 010-11z"/></svg>
+        </button>
+        <button class="theme-btn" id="themeDark" onclick="setTheme('dark')" title="Dark" aria-label="Dark mode">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M6 1.5a6.5 6.5 0 100 13 6.5 6.5 0 010-13zm0 1.2a5.3 5.3 0 000 10.6c-3.01-.27-5.3-2.81-5.3-5.9S3.07 3.03 6.1 2.7z"/></svg>
+        </button>
       </div>
+    </div>
+
+  </div>
+
+  <!-- Row 2: Filter tabs -->
+  <nav class="nav-bottom" aria-label="Filter jobs by category">
+    <div class="nav-tabs">
+
+      <button class="nav-tab active-pill" id="pill-all" onclick="setCategory('all')">
+        All Jobs
+        <span class="nav-tab-count" id="count-all-nav">0</span>
+      </button>
+
+      <div class="nav-tab-sep"></div>
+
+      <button class="nav-tab" id="pill-strong" onclick="setCategory('strong')">
+        <span class="nav-tab-dot" style="background:#22c55e"></span>
+        Strong
+        <span class="nav-tab-count" id="count-strong">0</span>
+      </button>
+      <button class="nav-tab" id="pill-maybe" onclick="setCategory('maybe')">
+        <span class="nav-tab-dot" style="background:#f59e0b"></span>
+        Maybe
+        <span class="nav-tab-count" id="count-maybe">0</span>
+      </button>
+      <button class="nav-tab" id="pill-weak" onclick="setCategory('weak')">
+        <span class="nav-tab-dot" style="background:#9ca3af"></span>
+        Weak
+        <span class="nav-tab-count" id="count-weak">0</span>
+      </button>
+
+      <div class="nav-tab-sep"></div>
+
+      <button class="nav-tab" id="pill-applied" onclick="setCategory('applied')">
+        <span class="nav-tab-dot" style="background:#3b82f6"></span>
+        Applied
+        <span class="nav-tab-count" id="count-applied">0</span>
+      </button>
+      <button class="nav-tab" id="pill-flagged" onclick="setCategory('flagged')">
+        <span class="nav-tab-dot" style="background:#f97316"></span>
+        Flagged
+        <span class="nav-tab-count" id="count-flagged">0</span>
+      </button>
+      <button class="nav-tab" id="pill-no" onclick="setCategory('no')">
+        <span class="nav-tab-dot" style="background:#ef4444"></span>
+        No Match
+        <span class="nav-tab-count" id="count-no">0</span>
+      </button>
 
     </div>
-  </div>
+  </nav>
+
 </header>
 
 <!-- ═══════════════ MAIN ═══════════════ -->
-<main>
-<div class="container">
+<main style="display:flex;flex-direction:column;height:calc(100vh - 100px);height:calc(100dvh - 100px);overflow:hidden;">
 
-  <!-- Controls -->
-  <div class="controls-section" style="animation: fadeUp 0.4s var(--ease-out) both;">
-    <div class="controls-row">
+  <!-- Controls bar — flush, full width, part of the page -->
+  <div class="controls-section" style="animation: fadeUp 0.3s var(--ease-out) both; flex-shrink:0;">
+    <div class="controls-row" style="padding:0 28px;">
       <div class="search-box">
-        <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
           <circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/>
         </svg>
-        <input id="searchInput" type="text" placeholder="Search role, company, skills…"/>
+        <input id="searchInput" type="text" placeholder="Search role, company, skills…" aria-label="Search jobs"/>
       </div>
-
       <select class="ctrl-select" id="locationSel" onchange="onLocationChange()">
         <option value="">All Locations</option>
-        <option value="New Jersey">New Jersey (39)</option>
-        <option value="Virginia">Virginia (34)</option>
-        <option value="California">California (29)</option>
-        <option value="New York">New York (29)</option>
-        <option value="Florida">Florida (29)</option>
-        <option value="Pennsylvania">Pennsylvania (28)</option>
-        <option value="Texas">Texas (25)</option>
-        <option value="Maryland">Maryland (23)</option>
-        <option value="Washington">Washington (12)</option>
-        <option value="Georgia">Georgia (11)</option>
-        <option value="North Carolina">North Carolina (11)</option>
-        <option value="Delaware">Delaware (9)</option>
-        <option value="Illinois">Illinois (9)</option>
-        <option value="Ohio">Ohio (7)</option>
-        <option value="Michigan">Michigan (7)</option>
-        <option value="Massachusetts">Massachusetts (5)</option>
-        <option value="Remote">Remote (5)</option>
-        <option value="Arkansas">Arkansas (5)</option>
-        <option value="Wisconsin">Wisconsin (4)</option>
-        <option value="Arizona">Arizona (3)</option>
-        <option value="Connecticut">Connecticut (3)</option>
-        <option value="Missouri">Missouri (3)</option>
-        <option value="Oregon">Oregon (2)</option>
-        <option value="Idaho">Idaho (2)</option>
-        <option value="New Hampshire">New Hampshire (2)</option>
-        <option value="Kansas">Kansas (1)</option>
-        <option value="Utah">Utah (1)</option>
-        <option value="Iowa">Iowa (1)</option>
-        <option value="Nebraska">Nebraska (1)</option>
-        <option value="Indiana">Indiana (1)</option>
-        <option value="Colorado">Colorado (1)</option>
-        <option value="Mississippi">Mississippi (1)</option>
       </select>
-
+      <button id="noFlagToggle" onclick="toggleNoFlag()" class="ctrl-toggle">🚩 Hide Flagged</button>
       <div class="sort-group">
         <span class="sort-label">Sort</span>
         <select class="ctrl-select" id="sort1" onchange="render()">
@@ -2069,111 +2357,163 @@ header {
         </select>
       </div>
     </div>
-
-    <div class="active-filters" id="activeFilters"></div>
+    <div class="active-filters" id="activeFilters" style="padding:0 28px;margin-top:6px;"></div>
   </div>
 
-  <!-- Results bar -->
-  <div class="results-bar">
-    <div class="results-count">Showing <em id="shown">0</em> of <em id="total-jobs">0</em> jobs</div>
+  <!-- Resizable split layout -->
+  <div class="split-layout" id="splitLayout">
+
+    <!-- LEFT: Job list -->
+    <div class="jobs-list-pane" id="jobsListPane">
+
+      <!-- List header: count + updated -->
+      <div class="jobs-list-header">
+        <div class="results-count" style="font-size:12.5px;color:var(--text-muted);">
+          <strong id="shown" style="color:var(--text-primary)">0</strong> of <em id="total-jobs">0</em> jobs
+        </div>
+        <div id="listUpdated" style="font-size:11.5px;color:var(--text-faint);display:flex;align-items:center;gap:5px;"></div>
+      </div>
+
+      <div class="jobs-list-inner">
+        <div class="jobs-grid" id="grid"></div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+
+    <!-- Drag handle -->
+    <div class="pane-divider" id="paneDivider" title="Drag to resize">
+      <div class="pane-divider-grip">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+
+    <!-- RIGHT: Detail panel -->
+    <div class="detail-pane" id="detailPane">
+
+      <!-- Empty state -->
+      <div class="detail-empty" id="detailEmpty">
+        <div class="detail-empty-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-faint)"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+        </div>
+        <h3>No job selected</h3>
+        <p>Click any job on the left to view details</p>
+      </div>
+
+      <!-- Panel content -->
+      <div class="panel" id="panelContent" style="display:none">
+
+        <div class="panel-head">
+          <div class="panel-head-top">
+            <div class="panel-company-row">
+              <div class="panel-avatar" id="pAvatar"></div>
+              <div class="panel-company-info">
+                <div class="panel-title" id="mTitle"></div>
+                <div class="panel-sub" id="mSub"></div>
+              </div>
+            </div>
+            <button class="panel-close" onclick="closeModal()" title="Close">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 1l8 8M9 1L1 9"/></svg>
+            </button>
+          </div>
+          <div class="panel-meta" id="mMeta"></div>
+        </div>
+
+        <div class="panel-body">
+
+          <div class="panel-section" id="mFlagsSection">
+            <div class="flags-alert">
+              <div class="flags-alert-dot"></div>
+              <div class="flags-alert-body">
+                <div class="flags-alert-title">⚠ Hard Flags Detected</div>
+                <div class="flags-alert-chips" id="mFlagsChips"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-section" id="mJustSection">
+            <div class="section-label">Why this matches you</div>
+            <div class="modal-justification" id="mJust"></div>
+          </div>
+
+          <div class="panel-section" id="mTagsSection">
+            <div class="section-label">✅ Matching Skills</div>
+            <div class="tags-row" id="mTags"></div>
+          </div>
+
+          <div class="panel-section" id="mMissSection">
+            <div class="section-label">⚡ Skill Gaps</div>
+            <div class="tags-row" id="mMiss"></div>
+          </div>
+
+          <div class="panel-section" id="mDescSection">
+            <div class="section-label">Job Description</div>
+            <div class="job-desc-full" id="mDescBody"></div>
+          </div>
+
+          <div class="panel-section" id="mCoverSection">
+            <div class="section-label">AI Cover Letter</div>
+            <div class="cover-text" id="mCover"></div>
+          </div>
+
+          <div class="panel-section" id="mResumeSection" style="display:none">
+            <div class="section-label">ATS Optimized Resume</div>
+            <a id="mResumeLink" href="#" target="_blank" class="btn-panel-resume" style="display:none">📄 View Resume ↗</a>
+          </div>
+
+        </div>
+
+        <!-- Apply iframe view -->
+        <div id="applyIframeView" style="display:none;flex:1;flex-direction:column;min-height:0;">
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid var(--border-subtle);flex-shrink:0;">
+            <button onclick="closeApplyTab()" style="display:inline-flex;align-items:center;gap:6px;background:var(--bg-surface-2);border:1px solid var(--border-default);color:var(--text-secondary);padding:6px 12px;border-radius:var(--r-pill);font-family:var(--font-sans);font-size:13px;font-weight:500;cursor:pointer;">
+              ← Back to Details
+            </button>
+            <span id="applyIframeTitle" style="font-size:13px;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+            <a id="applyOpenExternal" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-faint);text-decoration:none;flex-shrink:0;" title="Open in new tab">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Open tab
+            </a>
+          </div>
+          <div id="iframeFallback" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--bg-base);padding:40px;">
+            <div style="width:56px;height:56px;border-radius:16px;background:var(--bg-surface-2);border:1px solid var(--border-default);display:flex;align-items:center;justify-content:center;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-faint)"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:6px;">This site can't be embedded</div>
+              <div id="iframeFallbackHost" style="font-size:13px;color:var(--text-muted);margin-bottom:20px;"></div>
+              <a id="iframeFallbackLink" href="#" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:var(--c-accent);color:white;padding:10px 22px;border-radius:var(--r-pill);font-family:var(--font-sans);font-size:14px;font-weight:600;text-decoration:none;transition:opacity 0.15s;">
+                Open Application Page ↗
+              </a>
+            </div>
+            <div style="font-size:12px;color:var(--text-faint);max-width:280px;text-align:center;line-height:1.6;">
+              Many company sites block embedding for security reasons. The link above will open it in a new tab.
+            </div>
+          </div>
+          <iframe id="applyIframe" src="" style="flex:1;border:none;width:100%;background:white;" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>
+        </div>
+
+        <div class="panel-footer">
+          <button id="mApplyBtn" onclick="openApplyTab()" class="btn-panel-apply">Apply Now ↗</button>
+          <div style="position:relative">
+            <button class="btn-modal-mark" id="mMarkBtn" onclick="togglePanelStatusMenu()"></button>
+            <div class="status-menu" id="sm-panel">
+              <button class="status-menu-item" onclick="setPanelStatus('none')"><span class="dot dot-none"></span> None</button>
+              <button class="status-menu-item" onclick="setPanelStatus('applied')"><span class="dot dot-applied"></span> Applied</button>
+              <button class="status-menu-item" onclick="setPanelStatus('ignored')"><span class="dot dot-ignored"></span> Ignored</button>
+              <button class="status-menu-item" onclick="setPanelStatus('unavail')"><span class="dot dot-unavail"></span> Not Available</button>
+            </div>
+          </div>
+          <button id="mResumeGenBtn" class="btn-panel-resume-footer" onclick="openJdModalFromPanel()" style="display:none">✨ Generate Resume</button>
+          <a id="mResumeLinkFooter" href="#" target="_blank" class="btn-panel-resume-footer" style="display:none">📄 View Resume ↗</a>
+          <div class="footer-spacer"></div>
+          <button class="btn-copy" id="copyBtn" onclick="copyCover()" style="display:none">Copy Letter</button>
+        </div>
+
+      </div>
+    </div>
   </div>
 
-  <!-- Grid -->
-  <div class="jobs-grid" id="grid"></div>
-
-  <!-- Pagination -->
-  <div class="pagination" id="pagination"></div>
-
-</div>
 </main>
-
-<!-- ═══════════════ SLIDE PANEL ═══════════════ -->
-<div class="panel-overlay" id="panelOverlay">
-  <div class="panel-backdrop" onclick="closeModal()"></div>
-  <div class="panel">
-    <!-- Panel header -->
-    <div class="panel-head">
-      <div class="panel-head-top">
-        <div class="panel-company-row">
-          <div class="panel-avatar" id="pAvatar"></div>
-          <div class="panel-company-info">
-            <div class="panel-title" id="mTitle"></div>
-            <div class="panel-sub" id="mSub"></div>
-          </div>
-        </div>
-        <button class="panel-close" onclick="closeModal()">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-            <path d="M1 1l8 8M9 1L1 9"/>
-          </svg>
-        </button>
-      </div>
-      <div class="panel-meta" id="mMeta"></div>
-    </div>
-
-    <!-- Panel body -->
-    <div class="panel-body">
-
-      <div class="panel-section" id="mFlagsSection">
-        <div class="flags-alert">
-          <div class="flags-alert-dot"></div>
-          <div class="flags-alert-body">
-            <div class="flags-alert-title">Hard Flags Detected</div>
-            <div class="flags-alert-chips" id="mFlagsChips"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="panel-section" id="mJustSection">
-        <div class="section-label">Why this matches</div>
-        <div class="modal-justification" id="mJust"></div>
-      </div>
-
-      <div class="panel-section" id="mTagsSection">
-        <div class="section-label">Matching Skills</div>
-        <div class="tags-row" id="mTags"></div>
-      </div>
-
-      <div class="panel-section" id="mMissSection">
-        <div class="section-label">Skill Gaps</div>
-        <div class="tags-row" id="mMiss"></div>
-      </div>
-
-      <div class="panel-section" id="mDescSection">
-        <div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">
-          Job Description
-          <button id="mDescToggle" onclick="toggleDesc()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text-faint);font-family:var(--font-sans);padding:0;">Show ▾</button>
-        </div>
-        <div id="mDescBody" style="display:none;margin-top:8px;font-size:12.5px;color:var(--text-secondary);line-height:1.65;white-space:pre-wrap;max-height:320px;overflow-y:auto;padding-right:4px;"></div>
-      </div>
-
-      <div class="panel-section" id="mCoverSection">
-        <div class="section-label">AI Cover Letter</div>
-        <div class="cover-text" id="mCover"></div>
-      </div>
-
-      <div class="panel-section" id="mResumeSection">
-        <div class="section-label">ATS Optimized Resume</div>
-        <a id="mResumeLink" href="#" target="_blank" class="btn-panel-resume" style="display:none">📄 View Resume ↗</a>
-        <button id="mResumeGenBtn" class="btn-panel-gen-resume" onclick="openJdModalFromPanel()" style="display:none">✨ Generate Resume</button>
-      </div>
-
-    </div>
-
-    <!-- Panel footer -->
-    <div class="panel-footer">
-      <a id="mApplyBtn" href="#" target="_blank" class="btn-panel-apply">Apply Now ↗</a>
-      <div style="position:relative">
-        <button class="btn-modal-mark" id="mMarkBtn" onclick="togglePanelStatusMenu()"></button>
-        <div class="status-menu" id="sm-panel">
-          <button class="status-menu-item" onclick="setPanelStatus('none')"><span class="dot dot-none"></span> None</button>
-          <button class="status-menu-item" onclick="setPanelStatus('applied')"><span class="dot dot-applied"></span> Applied</button>
-          <button class="status-menu-item" onclick="setPanelStatus('ignored')"><span class="dot dot-ignored"></span> Ignored</button>
-        </div>
-      </div>
-      <button class="btn-copy" id="copyBtn" onclick="copyCover()">Copy Letter</button>
-    </div>
-  </div>
-</div>
 
 <!-- ═══════════════ LOADING ═══════════════ -->
 <div class="loading-screen" id="loadingScreen">
@@ -2195,6 +2535,14 @@ header {
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Shared status dropdown appended to body to escape all overflow:hidden containers -->
+<div class="status-menu" id="sm-shared">
+  <button class="status-menu-item" onclick="setStatus(sharedMenuJobId,'none')"><span class="dot dot-none"></span> None</button>
+  <button class="status-menu-item" onclick="setStatus(sharedMenuJobId,'applied')"><span class="dot dot-applied"></span> Applied</button>
+  <button class="status-menu-item" onclick="setStatus(sharedMenuJobId,'ignored')"><span class="dot dot-ignored"></span> Ignored</button>
+  <button class="status-menu-item" onclick="setStatus(sharedMenuJobId,'unavail')"><span class="dot dot-unavail"></span> Not Available</button>
+</div>
 
 <!-- ═══════════════ JD MODAL ═══════════════ -->
 <div class="jd-modal-overlay" id="jdModalOverlay">
@@ -2276,6 +2624,7 @@ function unmarkApplied(id) { appliedSet.delete(id); saveApplied(appliedSet); }
 let activeCat = 'all';
 let activeLocation = '';
 let activeJobId = null;
+let hideFlags = false;
 
 // ── Counts ──────────────────────────────────────────────────
 function updateAppliedCount() { document.getElementById('count-applied').textContent = appliedSet.size; }
@@ -2375,7 +2724,7 @@ function updateActiveFilters() {
   });
   if (activeCat !== 'all') {
     const labels = {strong:'Strong Match',maybe:'Maybe',weak:'Weak',applied:'Applied',flagged:'Hard Flagged',no:'No Match'};
-    tags.push({ label: labels[activeCat] || activeCat, clear: () => setCategory('all', document.querySelector('[data-cat="all"]')) });
+    tags.push({ label: labels[activeCat] || activeCat, clear: () => setCategory('all') });
   }
   el.innerHTML = tags.map((t, i) => `<span class="af-tag" onclick="window._cf(${i})">${esc(t.label)}</span>`).join('');
   window._cf = (i) => tags[i].clear();
@@ -2432,14 +2781,15 @@ function renderPagination(totalJobs) {
 function render() {
   const q = document.getElementById('searchInput').value.toLowerCase();
   let jobs = ALL_JOBS.filter(j => {
-    const blob = [j.position, j.company, j.location, j.tags.join(' '), j.publisher, j.flags.join(' ')].join(' ').toLowerCase();
+    const blob = [j.position, j.company, j.location, (j.tags||[]).join(' '), j.publisher, (j.flags||[]).join(' ')].join(' ').toLowerCase();
     const matchQ = !q || blob.includes(q);
     const matchCat = activeCat === 'all' ? true
       : activeCat === 'applied' ? isApplied(j.id)
       : activeCat === 'flagged' ? (j.flags && j.flags.length > 0)
       : j.category === activeCat;
-    const matchLoc = !activeLocation || ((j.state || '') === activeLocation);
-    return matchQ && matchCat && matchLoc;
+    const matchLoc  = !activeLocation || ((j.state || '') === activeLocation);
+    const matchFlag = !hideFlags || (!j.flags || j.flags.length === 0);
+    return matchQ && matchCat && matchLoc && matchFlag;
   });
 
   jobs = sortJobs(jobs);
@@ -2466,73 +2816,56 @@ function render() {
   grid.innerHTML = pageJobs.map((j, i) => {
     const applied  = isApplied(j.id);
     const ignored  = isIgnored(j.id);
-    const status   = applied ? 'applied' : ignored ? 'ignored' : 'none';
-    const delay = Math.min(i * 0.025, 0.45);
-    const tagsHtml = j.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('');
-    const missHtml = j.missing_tags.map(t => `<span class="tag tag-miss">− ${esc(t)}</span>`).join('');
-    const flagsHtml = j.flags.map(f => `<span class="flag-chip">${esc(f)}</span>`).join('');
-    const dateStr = fmtDate(j.posted_dt);
+    const unavail  = isUnavail(j.id);
+    const status   = applied ? 'applied' : ignored ? 'ignored' : unavail ? 'unavail' : 'none';
+    const delay    = Math.min(i * 0.02, 0.3);
+    const dateStr  = fmtDate(j.posted_dt);
     const checkedStr = fmtDate(j.last_checked);
-    const title = j.position || j.title || j.job_title || j.role || j.name || '(No title)';
+    const title    = j.position || j.title || j.job_title || j.role || j.name || '(No title)';
+    const isSelected = activeJobId === j.id;
+    const scoreCls = j.category === 'strong' ? 'sb-strong' : j.category === 'maybe' ? 'sb-maybe' : j.category === 'no' ? 'sb-no' : 'sb-weak';
 
-    return `<div class="job-card card-${j.category}${applied ? ' applied' : ''}${ignored ? ' ignored-card' : ''}"
+    // Status badge
+    let statusBadge = '';
+    if (applied) statusBadge = `<span class="tag" style="background:var(--c-strong-bg);border-color:var(--c-strong-border);color:var(--c-strong-text)">✓ Applied</span>`;
+    else if (ignored) statusBadge = `<span class="tag" style="background:var(--c-no-bg);border-color:var(--c-no-border);color:var(--c-no-text)">✕ Ignored</span>`;
+    else if (unavail) statusBadge = `<span class="tag" style="background:rgba(168,85,247,0.08);border-color:rgba(168,85,247,0.3);color:#c084fc">🚫 N/A</span>`;
+
+    const flagsHtml = (j.flags||[]).map(f => `<span class="flag-chip">${esc(f)}</span>`).join('');
+
+    return `<div class="job-card card-${j.category}${applied?' applied':''}${ignored?' ignored-card':''}${isSelected?' selected':''}"
       style="animation-delay:${delay}s"
       onclick="openModal('${esc(j.id)}')">
-      ${applied ? `<div class="applied-ribbon">Applied</div>` : ''}
-      ${ignored ? `<div class="ignored-ribbon">Ignored</div>` : ''}
-      <div class="card-top">
-        <div class="company-avatar" style="${avatarStyle(j.company)}">${esc(initials(j.company))}</div>
-        ${scoreRingSVG(j.score, j.category)}
-      </div>
-      <div class="job-position">${esc(title)}</div>
-      <div class="job-company">${esc(j.company)}</div>
-      <div class="job-meta">
-        <div class="meta-item">
-          <svg class="meta-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 1.5a4.5 4.5 0 110 9 4.5 4.5 0 010-9zm0 9v4m-2 0h4"/></svg>
-          ${esc(j.location)}
-        </div>
-        ${dateStr ? `<div class="meta-item">
-          <svg class="meta-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
-          Posted ${esc(dateStr)}
-        </div>` : ''}
-        ${checkedStr ? `<div class="meta-item">
-          <svg class="meta-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 8h2m8 0h2M8 2v2m0 8v2M4.93 4.93l1.41 1.41m3.32 3.32l1.41 1.41M4.93 11.07l1.41-1.41m3.32-3.32l1.41-1.41"/><circle cx="8" cy="8" r="2.5"/></svg>
-          Checked ${esc(checkedStr)}
-        </div>` : ''}
-      </div>
-      ${flagsHtml ? `<div class="flags-row">${flagsHtml}</div>` : ''}
-      ${tagsHtml || missHtml ? `<div class="tags-row">${tagsHtml}${missHtml}</div>` : ''}
-      ${j.job_desc ? `<div class="job-desc-snippet">${esc(j.job_desc.substring(0, 200))}${j.job_desc.length > 200 ? '…' : ''}</div>` : ''}
-      <div class="card-footer">
-        <div class="footer-left">
-          <span class="publisher-badge">${esc(j.publisher)}</span>
-        </div>
-        <div class="card-actions">
-          <div style="position:relative" onclick="event.stopPropagation()">
-            <button class="btn-status${status === 'applied' ? ' is-applied' : status === 'ignored' ? ' is-ignored' : ''}"
-              onclick="toggleStatusMenu('${esc(j.id)}', this)">
-              ${status === 'applied' ? '✓' : status === 'ignored' ? '✕' : '·'}
-            </button>
-            <div class="status-menu" id="sm-${esc(j.id)}">
-              <button class="status-menu-item${status==='none'?' active':''}" onclick="setStatus('${esc(j.id)}','none')">
-                <span class="dot dot-none"></span> None
-              </button>
-              <button class="status-menu-item${status==='applied'?' active':''}" onclick="setStatus('${esc(j.id)}','applied')">
-                <span class="dot dot-applied"></span> Applied
-              </button>
-              <button class="status-menu-item${status==='ignored'?' active':''}" onclick="setStatus('${esc(j.id)}','ignored')">
-                <span class="dot dot-ignored"></span> Ignored
-              </button>
+      <div class="card-row">
+        <div class="card-body">
+          <div class="job-position">${esc(title)}</div>
+          <div class="job-company">${esc(j.company)}</div>
+          <div class="job-meta">
+            <div class="meta-item">
+              <svg class="meta-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 1.5a4.5 4.5 0 110 9 4.5 4.5 0 010-9zm0 9v4m-2 0h4"/></svg>
+              ${esc(j.location||'')}
             </div>
+            ${dateStr ? `<div class="meta-item">
+              <svg class="meta-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+              ${esc(dateStr)}
+            </div>` : ''}
+            ${checkedStr ? `<div class="meta-item">
+              <svg class="meta-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 8h12M8 2l4 6-4 6"/></svg>
+              Checked ${esc(checkedStr)}
+            </div>` : ''}
+            <div class="meta-item"><span class="publisher-badge">${esc(j.publisher||'')}</span></div>
           </div>
-          ${j.cover ? `<button class="btn-cover" onclick="event.stopPropagation();openModal('${esc(j.id)}',true)">Letter</button>` : ''}
-          <a class="btn-apply" href="${esc(j.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Apply ↗</a>
-          ${j.ats_resume
-            ? `<a class="btn-resume" href="${esc(j.ats_resume)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📄 Resume</a>`
-            : j.job_desc
-              ? `<button class="btn-gen-resume" onclick="event.stopPropagation();autoGenResume('${esc(j.id)}', this)">✨ Resume</button>`
-              : `<button class="btn-gen-resume" onclick="event.stopPropagation();openJdModal('${esc(j.id)}')">✨ Resume</button>`
-          }
+          <div class="card-tags">
+            ${statusBadge}
+            ${flagsHtml}
+            <button class="btn-status${status==='applied'?' is-applied':status==='ignored'?' is-ignored':status==='unavail'?' is-unavail':''}"
+              onclick="event.stopPropagation();toggleStatusMenu('${esc(j.id)}', this)" title="Set status">
+              ${status==='applied'?'✓':status==='ignored'?'✕':'·'}
+            </button>
+          </div>
+        </div>
+        <div class="card-score-col">
+          <div class="score-badge ${scoreCls}">${j.score}</div>
         </div>
       </div>
     </div>`;
@@ -2550,15 +2883,42 @@ function isIgnored(id)   { return ignoredSet.has(id); }
 function markIgnored(id) { ignoredSet.add(id); saveIgnored(ignoredSet); }
 function unmarkIgnored(id) { ignoredSet.delete(id); saveIgnored(ignoredSet); }
 
+const UK = 'jobflow_unavail_v1';
+function loadUnavail() { try { return new Set(JSON.parse(localStorage.getItem(UK) || '[]')); } catch { return new Set(); } }
+function saveUnavail(s) { try { localStorage.setItem(UK, JSON.stringify([...s])); } catch {} }
+let unavailSet = loadUnavail();
+function isUnavail(id)   { return unavailSet.has(id); }
+function markUnavail(id) { unavailSet.add(id); saveUnavail(unavailSet); }
+function unmarkUnavail(id) { unavailSet.delete(id); saveUnavail(unavailSet); }
+
 // ── Status dropdown ───────────────────────────────────────────
 let openMenuId = null;
 
+let sharedMenuJobId = null;
+
 function toggleStatusMenu(jobId, btn) {
-  const menu = document.getElementById(`sm-${jobId}`);
-  if (!menu) return;
-  const isOpen = menu.classList.contains('open');
+  const menu = document.getElementById('sm-shared');
+  const isOpen = menu.classList.contains('open') && sharedMenuJobId === jobId;
   closeAllMenus();
   if (!isOpen) {
+    sharedMenuJobId = jobId;
+    // Mark active item
+    const statuses = ['none','applied','ignored','unavail'];
+    const current = isApplied(jobId)?'applied':isIgnored(jobId)?'ignored':isUnavail(jobId)?'unavail':'none';
+    menu.querySelectorAll('.status-menu-item').forEach((item, i) => {
+      item.classList.toggle('active', statuses[i] === current);
+    });
+    // Position using fixed coords
+    const rect = btn.getBoundingClientRect();
+    const menuHeight = 170;
+    menu.style.left = rect.left + 'px';
+    if (rect.top > menuHeight) {
+      menu.style.top = '';
+      menu.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+    } else {
+      menu.style.bottom = '';
+      menu.style.top = (rect.bottom + 4) + 'px';
+    }
     menu.classList.add('open');
     openMenuId = jobId;
   }
@@ -2566,25 +2926,33 @@ function toggleStatusMenu(jobId, btn) {
 
 function closeAllMenus() {
   document.querySelectorAll('.status-menu.open').forEach(m => m.classList.remove('open'));
+  sharedMenuJobId = null;
   openMenuId = null;
 }
 
-document.addEventListener('click', () => closeAllMenus());
+document.addEventListener('click', e => {
+  // Don't close if clicking on a status button or inside a menu
+  if (e.target.closest('.status-menu') || e.target.closest('.btn-status') || e.target.closest('.btn-modal-mark')) return;
+  closeAllMenus();
+});
 
 function setStatus(jobId, status) {
   unmarkApplied(jobId);
   unmarkIgnored(jobId);
+  unmarkUnavail(jobId);
   if (status === 'applied') markApplied(jobId);
   if (status === 'ignored') markIgnored(jobId);
+  if (status === 'unavail') markUnavail(jobId);
   updateAppliedCount();
   closeAllMenus();
-  const labels = { none: 'Status cleared', applied: '✓ Marked as applied', ignored: '✕ Marked as ignored' };
+  const labels = { none: 'Status cleared', applied: '✓ Marked as applied', ignored: '✕ Marked as ignored', unavail: '🚫 Marked as not available' };
   showToast(labels[status]);
   render();
 }
 
-// ── Quick toggle (kept for panel button) ─────────────────────
+// ── Quick toggle (kept for backward compatibility) ────────────
 function quickToggle(id) {
+  if (!id) return;
   const was = isApplied(id);
   was ? unmarkApplied(id) : markApplied(id);
   updateAppliedCount();
@@ -2598,6 +2966,14 @@ const jobMap = {};
 function openModal(id, showCover = false) {
   const j = jobMap[id]; if (!j) return;
   activeJobId = id;
+  // Reset apply iframe view when switching jobs
+  closeApplyTab();
+
+  // Highlight selected card in left pane
+  document.querySelectorAll('.job-card.selected').forEach(c => c.classList.remove('selected'));
+  const selectedCard = document.querySelector(`.job-card[onclick*="'${id}'"]`);
+  if (selectedCard) selectedCard.classList.add('selected');
+
   const applied = isApplied(id);
 
   // Avatar in panel
@@ -2618,7 +2994,7 @@ function openModal(id, showCover = false) {
   ].join('');
 
   if (j.flags && j.flags.length) {
-    document.getElementById('mFlagsChips').innerHTML = j.flags.map(f => `<span class="flag-chip-modal">${esc(f)}</span>`).join('');
+    document.getElementById('mFlagsChips').innerHTML = (j.flags||[]).map(f => `<span class="flag-chip-modal">${esc(f)}</span>`).join('');
     document.getElementById('mFlagsSection').style.display = '';
   } else document.getElementById('mFlagsSection').style.display = 'none';
 
@@ -2627,64 +3003,90 @@ function openModal(id, showCover = false) {
     document.getElementById('mJustSection').style.display = '';
   } else document.getElementById('mJustSection').style.display = 'none';
 
-  document.getElementById('mTags').innerHTML = j.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('');
-  document.getElementById('mTagsSection').style.display = j.tags.length ? '' : 'none';
+  document.getElementById('mTags').innerHTML = (j.tags||[]).map(t => `<span class="tag">${esc(t)}</span>`).join('');
+  document.getElementById('mTagsSection').style.display = (j.tags||[]).length ? '' : 'none';
 
-  document.getElementById('mMiss').innerHTML = j.missing_tags.map(t => `<span class="tag tag-miss">− ${esc(t)}</span>`).join('');
-  document.getElementById('mMissSection').style.display = j.missing_tags.length ? '' : 'none';
+  document.getElementById('mMiss').innerHTML = (j.missing_tags||[]).map(t => `<span class="tag tag-miss">− ${esc(t)}</span>`).join('');
+  document.getElementById('mMissSection').style.display = (j.missing_tags||[]).length ? '' : 'none';
 
   if (j.cover) {
     document.getElementById('mCover').textContent = j.cover;
     document.getElementById('mCoverSection').style.display = '';
   } else document.getElementById('mCoverSection').style.display = 'none';
 
-  // Job Description
+  // Job Description — always fully visible, no toggle
   if (j.job_desc) {
     document.getElementById('mDescBody').textContent = j.job_desc;
     document.getElementById('mDescSection').style.display = '';
-    document.getElementById('mDescBody').style.display = 'none';
-    document.getElementById('mDescToggle').textContent = 'Show ▾';
   } else {
     document.getElementById('mDescSection').style.display = 'none';
   }
 
+  // Resume buttons in footer
+  const genBtn = document.getElementById('mResumeGenBtn');
+  const resumeLinkFooter = document.getElementById('mResumeLinkFooter');
+
+  genBtn.classList.remove('generating');
+  genBtn.textContent = '✨ Generate Resume';
+  genBtn.onclick = () => openJdModalFromPanel();
+  genBtn.disabled = false;
+
   if (j.ats_resume) {
-    document.getElementById('mResumeLink').href = j.ats_resume;
-    document.getElementById('mResumeLink').style.display = '';
-    document.getElementById('mResumeGenBtn').style.display = 'none';
-    document.getElementById('mResumeSection').style.display = '';
+    resumeLinkFooter.href = j.ats_resume;
+    resumeLinkFooter.style.display = '';
+    genBtn.style.display = 'none';
+  } else if (generatingSet.has(id)) {
+    resumeLinkFooter.style.display = 'none';
+    genBtn.classList.add('generating');
+    genBtn.textContent = '⏳ Generating…';
+    genBtn.disabled = true;
+    genBtn.style.display = '';
   } else {
-    document.getElementById('mResumeLink').style.display = 'none';
-    document.getElementById('mResumeGenBtn').style.display = '';
-    document.getElementById('mResumeSection').style.display = '';
+    resumeLinkFooter.style.display = 'none';
+    genBtn.style.display = '';
   }
 
-  document.getElementById('mApplyBtn').href = j.url || '#';
+  document.getElementById('mApplyBtn').dataset.url = j.url || '';
   updateMarkBtn(document.getElementById('mMarkBtn'), id);
   const copyBtn = document.getElementById('copyBtn');
   copyBtn.style.display = j.cover ? '' : 'none';
   copyBtn.className = 'btn-copy';
   copyBtn.textContent = 'Copy Letter';
 
-  document.getElementById('panelOverlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
+  // Show inline right panel
+  document.getElementById('detailEmpty').style.display = 'none';
+  document.getElementById('panelContent').style.display = 'flex';
+
+  // Scroll right panel to top
+  const pb = document.querySelector('#panelContent .panel-body');
+  if (pb) pb.scrollTop = 0;
 
   if (showCover) setTimeout(() => {
     document.getElementById('mCover').scrollIntoView({behavior:'smooth',block:'nearest'});
-  }, 420);
+  }, 100);
 }
 
 function updateMarkBtn(btn, jobId) {
   const applied = isApplied(jobId);
   const ignored = isIgnored(jobId);
-  const status  = applied ? 'applied' : ignored ? 'ignored' : 'none';
-  btn.textContent = applied ? 'Applied ✓' : ignored ? 'Ignored ✕' : 'Mark Status';
-  btn.className = 'btn-modal-mark' + (applied ? '' : ignored ? ' unapply' : '');
+  const unavail = isUnavail(jobId);
+  btn.textContent = applied ? 'Applied ✓' : ignored ? 'Ignored ✕' : unavail ? 'Not Available 🚫' : 'Mark Status';
+  btn.className = 'btn-modal-mark' + (applied ? '' : ignored ? ' unapply' : unavail ? ' unapply' : '');
 }
 
 function togglePanelStatusMenu() {
   const menu = document.getElementById('sm-panel');
-  menu.classList.toggle('open');
+  const btn  = document.getElementById('mMarkBtn');
+  const isOpen = menu.classList.contains('open');
+  closeAllMenus();
+  if (!isOpen) {
+    menu.classList.add('open');
+    // Position above the button using fixed coords to escape overflow:hidden
+    const rect = btn.getBoundingClientRect();
+    menu.style.left   = rect.left + 'px';
+    menu.style.bottom = (window.innerHeight - rect.top + 8) + 'px';
+    menu.style.top    = 'auto';
+  }
 }
 
 function setPanelStatus(status) {
@@ -2698,12 +3100,14 @@ function setPanelStatus(status) {
     const dateStr = fmtDate(j.posted_dt);
     const applied = isApplied(activeJobId);
     const ignored = isIgnored(activeJobId);
+    const unavail = isUnavail(activeJobId);
     document.getElementById('mMeta').innerHTML = [
       `<span class="panel-badge">${esc(j.publisher)}</span>`,
       dateStr ? `<span class="panel-badge">${esc(dateStr)}</span>` : '',
       `<span class="panel-badge">Score: ${j.score}</span>`,
       applied ? `<span class="panel-badge badge-applied">✓ Applied</span>` : '',
       ignored ? `<span class="panel-badge" style="background:var(--c-no-bg);border-color:var(--c-no-border);color:var(--c-no-text)">✕ Ignored</span>` : '',
+      unavail ? `<span class="panel-badge" style="background:rgba(168,85,247,0.08);border-color:rgba(168,85,247,0.3);color:#c084fc">🚫 Not Available</span>` : '',
     ].join('');
   }
 }
@@ -2717,25 +3121,55 @@ function toggleDesc() {
 }
 
 function closeModal() {
-  document.getElementById('panelOverlay').classList.remove('open');
-  document.body.style.overflow = '';
+  document.getElementById('detailEmpty').style.display = 'flex';
+  document.getElementById('panelContent').style.display = 'none';
+  // Remove selected highlight from cards
+  document.querySelectorAll('.job-card.selected').forEach(c => c.classList.remove('selected'));
   activeJobId = null;
 }
 
 // ── ATS Pipeline API ─────────────────────────────────────────
 const PIPELINE_API = 'http://localhost:8000';
 
+// ── Tracks jobs currently generating a resume ────────────────
+const generatingSet = new Set();
+
 // ── JD Modal state ───────────────────────────────────────────
 let jdTargetJobId = null;
 let jdSourcePanel = false;
+
+// ── Sync the outer card's resume button for a given jobId ────
+function syncCardBtn(jobId, state, resumeUrl) {
+  // The card btn has autoGenResume OR openJdModal in its onclick
+  const cardBtn = document.querySelector(
+    `[data-job-resume-id="${CSS.escape(jobId)}"]`
+  );
+  if (!cardBtn) return;
+  if (state === 'generating') {
+    cardBtn.classList.add('generating');
+    cardBtn.textContent = '⏳ Generating…';
+    cardBtn.disabled = true;
+  } else if (state === 'done' && resumeUrl) {
+    // Replace the button with a link — re-render handles this properly
+    // Just trigger render; generatingSet is already cleared before this call
+  } else if (state === 'error') {
+    cardBtn.classList.remove('generating');
+    cardBtn.textContent = '✨ Resume';
+    cardBtn.disabled = false;
+  }
+}
 
 // Auto-generate without modal when job_desc already exists
 async function autoGenResume(jobId, btn) {
   const j = jobMap[jobId];
   if (!j?.job_desc) { openJdModal(jobId); return; }
 
+  generatingSet.add(jobId);
   btn.classList.add('generating');
   btn.textContent = '⏳ Generating…';
+  btn.disabled = true;
+  // Also update outer card if we were triggered from the panel
+  syncCardBtn(jobId, 'generating');
   showToast('Generating resume…');
 
   try {
@@ -2758,20 +3192,38 @@ async function autoGenResume(jobId, btn) {
     const data = await res.json();
     j.ats_resume  = data.resume_url;
     jobMap[jobId] = j;
+    generatingSet.delete(jobId);
 
+    driveDownload(data.resume_url);
     showToast('✅ Resume generated and saved!');
-    render();
+    render(); // re-render replaces card btn with 📄 Resume link
 
-    // Update panel if open
+    // Sync panel if it's open for this job
     if (activeJobId === jobId) {
-      document.getElementById('mResumeLink').href          = data.resume_url;
-      document.getElementById('mResumeLink').style.display  = '';
-      document.getElementById('mResumeGenBtn').style.display = 'none';
+      const resumeLinkFooter = document.getElementById('mResumeLinkFooter');
+      resumeLinkFooter.href = data.resume_url;
+      resumeLinkFooter.style.display = '';
+      const genBtn = document.getElementById('mResumeGenBtn');
+      genBtn.style.display = 'none';
+      genBtn.classList.remove('generating');
+      genBtn.disabled = false;
     }
   } catch (err) {
     showToast(`❌ ${err.message}`);
+    generatingSet.delete(jobId);
     btn.classList.remove('generating');
     btn.textContent = '✨ Resume';
+    btn.disabled = false;
+    // Sync outer card back to normal
+    syncCardBtn(jobId, 'error');
+
+    // Sync panel if it's open for this job
+    if (activeJobId === jobId) {
+      const genBtn = document.getElementById('mResumeGenBtn');
+      genBtn.classList.remove('generating');
+      genBtn.textContent = '✨ Generate Resume';
+      genBtn.disabled = false;
+    }
   }
 }
 
@@ -2833,10 +3285,12 @@ async function submitJdGenerate() {
   document.getElementById('jdStatus').className   = 'jd-status';
 
   // Also update card button to loading state
-  const cardBtn = document.querySelector(`[onclick*="openJdModal('${jobId}')"]`);
+  generatingSet.add(jobId);
+  const cardBtn = document.querySelector(`[data-job-resume-id="${CSS.escape(jobId)}"]`);
   if (cardBtn) {
     cardBtn.classList.add('generating');
     cardBtn.textContent = '⏳ Generating…';
+    cardBtn.disabled = true;
   }
 
   try {
@@ -2862,34 +3316,107 @@ async function submitJdGenerate() {
     // Update in-memory job object
     j.ats_resume = driveLink;
     jobMap[jobId] = j;
+    generatingSet.delete(jobId);
 
     // Update status
     document.getElementById('jdStatus').textContent = '✅ Resume ready!';
     document.getElementById('jdStatus').className   = 'jd-status success';
 
+    driveDownload(driveLink);
     showToast('✅ Resume generated and saved!');
 
     // Close modal after a beat and re-render
     setTimeout(() => {
       closeJdModal();
       render();
-      // If panel is open for this job, update the resume link
-      if (activeJobId === jobId) {
-        document.getElementById('mResumeLink').href         = driveLink;
-        document.getElementById('mResumeLink').style.display = '';
-        document.getElementById('mResumeGenBtn').style.display = 'none';
+    // If panel is open for this job, sync the footer resume link and button
+      if (activeJobId === jobId || jdSourcePanel) {
+        const resumeLinkFooter = document.getElementById('mResumeLinkFooter');
+        resumeLinkFooter.href = driveLink;
+        resumeLinkFooter.style.display = '';
+        const genBtn = document.getElementById('mResumeGenBtn');
+        genBtn.style.display = 'none';
+        genBtn.classList.remove('generating');
+        genBtn.disabled = false;
+        genBtn.textContent = '✨ Generate Resume';
       }
+      jdSourcePanel = false;
     }, 1000);
 
   } catch (err) {
     document.getElementById('jdStatus').textContent = `❌ ${err.message}`;
     document.getElementById('jdStatus').className   = 'jd-status error';
+    generatingSet.delete(jobId);
     _resetJdBtn();
     if (cardBtn) {
       cardBtn.classList.remove('generating');
       cardBtn.textContent = '✨ Resume';
+      cardBtn.disabled = false;
     }
+    // Sync panel if open for this job
+    if (activeJobId === jobId || jdSourcePanel) {
+      const genBtn = document.getElementById('mResumeGenBtn');
+      genBtn.classList.remove('generating');
+      genBtn.textContent = '✨ Generate Resume';
+      genBtn.disabled = false;
+    }
+    jdSourcePanel = false;
   }
+}
+
+function triggerResumeDownload(driveUrl, fileName) {
+  const match = driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (!match) return;
+  const fileId = match[1];
+  const dlUrl = `${PIPELINE_API}/download-resume?file_id=${encodeURIComponent(fileId)}&file_name=${encodeURIComponent(fileName || 'resume.pdf')}`;
+  const a = document.createElement('a');
+  a.href = dlUrl;
+  a.download = fileName || 'resume.pdf';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function driveDownload(driveUrl) {
+  const match = driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (!match) return;
+  const dlUrl = 'https://drive.google.com/uc?export=download&id=' + match[1];
+  const a = document.createElement('a');
+  a.href = dlUrl;
+  a.download = '';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function openApplyTab() {
+  const btn = document.getElementById('mApplyBtn');
+  const url = btn.dataset.url;
+  if (!url) return;
+  window.open(url, '_blank');
+}
+
+function showIframeFallback(url) {
+  const iframe = document.getElementById('applyIframe');
+  const fallback = document.getElementById('iframeFallback');
+  iframe.style.display = 'none';
+  fallback.style.display = 'flex';
+  clearTimeout(iframe._fallbackTimer);
+}
+
+function closeApplyTab() {
+  const iframe = document.getElementById('applyIframe');
+  const panelBody = document.querySelector('.panel-body');
+  const iframeView = document.getElementById('applyIframeView');
+  const footer = document.querySelector('.panel-footer');
+  clearTimeout(iframe._fallbackTimer);
+  iframe.src = '';
+  iframe.style.display = 'block';
+  document.getElementById('iframeFallback').style.display = 'none';
+  panelBody.style.display = '';
+  iframeView.style.display = 'none';
+  footer.style.display = '';
+  document.querySelector('.panel-head').style.display = '';
 }
 
 document.addEventListener('keydown', e => {
@@ -2898,6 +3425,16 @@ document.addEventListener('keydown', e => {
     closeJdModal();
   }
 });
+
+function toggleNoFlag() {
+  hideFlags = !hideFlags;
+  const btn = document.getElementById('noFlagToggle');
+  btn.classList.toggle('active', hideFlags);
+  btn.textContent = hideFlags ? '🚩 Showing No Flags' : '🚩 Hide Flagged';
+  currentPage = 1;
+  updateActiveFilters();
+  render();
+}
 
 function setCategory(cat) {
   activeCat = cat;
@@ -2917,7 +3454,13 @@ function showToast(msg) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-document.getElementById('searchInput').addEventListener('input', () => { currentPage = 1; render(); });
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  currentPage = 1;
+  // Keep nav search proxy in sync
+  const proxy = document.getElementById('navSearchProxy');
+  if (proxy && proxy.value !== e.target.value) proxy.value = e.target.value;
+  render();
+});
 document.getElementById('sort1').value = 'date';
 document.getElementById('sort1dir').value = 'desc';
 
@@ -2933,8 +3476,11 @@ function initCounts() {
   document.getElementById('count-weak').textContent = cats.weak;
   document.getElementById('count-flagged').textContent = cats.flagged;
   document.getElementById('count-no').textContent = cats.no || 0;
-  document.getElementById('total').textContent = ALL_JOBS.length;
-  document.getElementById('total-jobs').textContent = ALL_JOBS.length;
+  const total = ALL_JOBS.length;
+  document.getElementById('total').textContent = total;
+  document.getElementById('total-jobs').textContent = total;
+  const allNav = document.getElementById('count-all-nav');
+  if (allNav) allNav.textContent = total;
   updateAppliedCount();
   ALL_JOBS.forEach(j => jobMap[j.id] = j);
 
@@ -2985,8 +3531,8 @@ async function loadJobs() {
 
     // Last updated indicator
     const ts = new Date().toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'});
-    document.querySelector('.results-bar').insertAdjacentHTML('beforeend',
-      `<div class="last-updated"><div class="live-dot"></div>Updated ${ts}</div>`);
+    const lu = document.getElementById('listUpdated');
+    if (lu) lu.innerHTML = `<div class="live-dot"></div>Updated ${ts}`;
   } catch (err) {
     console.error('JobFlow fetch error:', err);
     document.getElementById('errorMsg').textContent = `Failed to load jobs: ${err.message}`;
@@ -3007,6 +3553,77 @@ function copyCover() {
 }
 
 loadJobs();
+
+// ══════════════════════════════════════════════
+// PANE RESIZE — drag handle between left & right
+// ══════════════════════════════════════════════
+(function initPaneResize() {
+  const divider  = document.getElementById('paneDivider');
+  const leftPane = document.getElementById('jobsListPane');
+  const layout   = document.getElementById('splitLayout');
+  if (!divider || !leftPane || !layout) return;
+
+  // Restore saved width
+  const saved = localStorage.getItem('jf_pane_width');
+  if (saved) leftPane.style.width = saved + 'px';
+
+  let dragging = false;
+  let startX = 0;
+  let startW = 0;
+
+  divider.addEventListener('mousedown', e => {
+    e.preventDefault();
+    dragging = true;
+    startX   = e.clientX;
+    startW   = leftPane.getBoundingClientRect().width;
+    divider.classList.add('dragging');
+    document.body.style.cursor   = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const delta  = e.clientX - startX;
+    const minW   = 260;
+    const maxW   = layout.getBoundingClientRect().width * 0.65;
+    const newW   = Math.min(maxW, Math.max(minW, startW + delta));
+    leftPane.style.width = newW + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    divider.classList.remove('dragging');
+    document.body.style.cursor    = '';
+    document.body.style.userSelect = '';
+    // Persist
+    const w = leftPane.getBoundingClientRect().width;
+    localStorage.setItem('jf_pane_width', Math.round(w));
+  });
+
+  // Touch support
+  divider.addEventListener('touchstart', e => {
+    dragging = true;
+    startX   = e.touches[0].clientX;
+    startW   = leftPane.getBoundingClientRect().width;
+    divider.classList.add('dragging');
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const delta = e.touches[0].clientX - startX;
+    const minW  = 260;
+    const maxW  = layout.getBoundingClientRect().width * 0.65;
+    leftPane.style.width = Math.min(maxW, Math.max(minW, startW + delta)) + 'px';
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    divider.classList.remove('dragging');
+    localStorage.setItem('jf_pane_width', Math.round(leftPane.getBoundingClientRect().width));
+  });
+})();
 </script>
 </body>
 </html>
