@@ -2214,6 +2214,101 @@ header {
   .nav-top { height: 50px; }
 }
 
+/* ═══════════════ PREMIUM SAAS REDESIGN LAYER ═══════════════ */
+body {
+  background:
+    radial-gradient(circle at 10% -20%, color-mix(in srgb, var(--c-accent) 16%, transparent), transparent 35%),
+    radial-gradient(circle at 90% -40%, color-mix(in srgb, #8b5cf6 12%, transparent), transparent 40%),
+    var(--bg-base);
+}
+
+.page-shell {
+  width: min(1240px, calc(100% - 40px));
+  margin: 20px auto 28px;
+  display: grid;
+  gap: 18px;
+}
+
+.surface-card {
+  background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(10px);
+}
+
+.hero-section {
+  padding: 40px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 28px;
+  align-items: center;
+}
+
+.hero-title { font-size: clamp(2rem, 4vw, 3.3rem); line-height: 1.04; letter-spacing: -0.04em; margin-bottom: 14px; }
+.hero-copy { color: var(--text-secondary); max-width: 62ch; margin-bottom: 22px; }
+.hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.btn-primary, .btn-secondary {
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.btn-primary { background: linear-gradient(180deg, color-mix(in srgb, var(--c-accent) 86%, white), var(--c-accent)); color: white; box-shadow: 0 10px 24px rgba(37,99,235,0.24); }
+.btn-secondary { border: 1px solid var(--border-default); color: var(--text-primary); background: var(--bg-page); }
+.btn-primary:hover, .btn-secondary:hover { transform: translateY(-1px); }
+
+.hero-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.metric-tile {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--bg-surface-2) 92%, transparent), var(--bg-surface));
+}
+.metric-tile strong { font-size: 1.2rem; letter-spacing: -0.02em; display: block; }
+.metric-tile span { font-size: 12px; color: var(--text-muted); }
+
+.section-heading { padding: 0 4px; }
+.section-heading h2 { font-size: 1.03rem; letter-spacing: -0.015em; margin-bottom: 4px; }
+.section-heading p { color: var(--text-muted); font-size: 13px; }
+
+.feature-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.feature-card { padding: 16px; border-radius: 16px; border: 1px solid var(--border-subtle); background: var(--bg-page); }
+.feature-card h3 { font-size: 14px; margin-bottom: 5px; }
+.feature-card p { font-size: 12.5px; color: var(--text-muted); }
+
+header.surface-card { position: sticky; top: 10px; z-index: 60; overflow: hidden; }
+main.surface-card { height: calc(100vh - 180px); height: calc(100dvh - 180px); overflow: hidden; }
+
+.page-anchor-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-surface-2) 84%, transparent);
+}
+.page-anchor-nav a {
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  border-radius: 999px;
+  padding: 7px 12px;
+  border: 1px solid transparent;
+}
+.page-anchor-nav a:hover { border-color: var(--border-default); color: var(--text-primary); background: var(--bg-page); }
+
+@media (max-width: 980px) {
+  .hero-section { grid-template-columns: 1fr; padding: 28px; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .page-shell { width: calc(100% - 20px); }
+}
+
 @media (max-width: 480px) {
   .container { padding: 0 16px; }
 }
@@ -2221,9 +2316,49 @@ header {
 </style>
 </head>
 <body>
+<div class="page-shell">
+
+  <section id="landing" class="surface-card hero-section" aria-label="JobFlow overview">
+    <div>
+      <div class="section-label" style="margin-bottom:8px;">Premium job search OS</div>
+      <h1 class="hero-title">Turn your job hunt into a structured, high-conviction pipeline.</h1>
+      <p class="hero-copy">JobFlow Intelligence helps you discover the right roles faster, tailor stronger resumes, and track every opportunity with confidence. Designed for clarity, trust, and consistent execution.</p>
+      <div class="hero-actions">
+        <a href="#dashboard" class="btn-primary" style="text-decoration:none;">Open Dashboard</a>
+        <a href="#resume-upload" class="btn-secondary" style="text-decoration:none;">Resume Upload</a>
+      </div>
+    </div>
+    <div>
+      <div class="hero-metrics">
+        <div class="metric-tile"><strong>2.4×</strong><span>Faster role triage</span></div>
+        <div class="metric-tile"><strong>87%</strong><span>Relevant-match precision</span></div>
+        <div class="metric-tile"><strong>5 min</strong><span>Average resume adaptation</span></div>
+        <div class="metric-tile"><strong>0 missed</strong><span>Centralized application tracking</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="surface-card" style="padding:16px 18px;display:grid;gap:14px;" aria-label="product structure">
+    <div class="section-heading">
+      <h2>Experience architecture</h2>
+      <p>Purpose-built structure for the five core workflows: discovery, evaluation, tailoring, applying, and tracking.</p>
+    </div>
+    <nav class="page-anchor-nav" aria-label="Page sections">
+      <a href="#landing">Landing page</a>
+      <a href="#dashboard">Dashboard</a>
+      <a href="#job-search">Job search</a>
+      <a href="#resume-upload">Resume upload</a>
+      <a href="#application-tracking">Application tracking</a>
+    </nav>
+    <div class="feature-grid">
+      <article class="feature-card"><h3>Signal-first job search</h3><p>Prioritize opportunities by confidence score, skill fit, and risk flags with minimal cognitive load.</p></article>
+      <article class="feature-card"><h3>Conversion-ready resume flow</h3><p>Generate ATS-friendly resumes from job descriptions without switching tools or losing context.</p></article>
+      <article class="feature-card"><h3>Reliable tracking system</h3><p>Mark status instantly, keep a complete audit trail, and reduce dropped opportunities across the pipeline.</p></article>
+    </div>
+  </section>
 
 <!-- ═══════════════ HEADER ═══════════════ -->
-<header>
+<header id="dashboard" class="surface-card">
 
   <!-- Row 1: Brand + Search + Controls -->
   <div class="nav-top">
@@ -2328,7 +2463,7 @@ header {
 </header>
 
 <!-- ═══════════════ MAIN ═══════════════ -->
-<main style="display:flex;flex-direction:column;height:calc(100vh - 100px);height:calc(100dvh - 100px);overflow:hidden;">
+<main id="job-search" class="surface-card" style="display:flex;flex-direction:column;overflow:hidden;">
 
   <!-- Controls bar — flush, full width, part of the page -->
   <div class="controls-section" style="animation: fadeUp 0.3s var(--ease-out) both; flex-shrink:0;">
@@ -2514,6 +2649,31 @@ header {
   </div>
 
 </main>
+
+  <section id="resume-upload" class="surface-card" style="padding:20px;display:grid;gap:10px;">
+    <div class="section-heading">
+      <h2>Resume upload</h2>
+      <p>Upload once, then tailor each role-specific resume with ATS optimization from the job details panel.</p>
+    </div>
+    <div class="feature-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
+      <article class="feature-card"><h3>Supported formats</h3><p>PDF and DOCX assets with clean typography, semantic headings, and keyword density checks.</p></article>
+      <article class="feature-card"><h3>Quality controls</h3><p>Track generated versions, keep source fidelity, and preview final output before external submission.</p></article>
+    </div>
+  </section>
+
+  <section id="application-tracking" class="surface-card" style="padding:20px;display:grid;gap:10px;">
+    <div class="section-heading">
+      <h2>Application tracking</h2>
+      <p>Use explicit statuses (Applied, Ignored, Not Available) and filters to stay focused on what moves you forward.</p>
+    </div>
+    <div class="feature-grid">
+      <article class="feature-card"><h3>Pipeline visibility</h3><p>Understand where each role stands using one shared source of truth.</p></article>
+      <article class="feature-card"><h3>Fast status updates</h3><p>Mark outcomes in one click from list cards, context menus, or detail panel controls.</p></article>
+      <article class="feature-card"><h3>Decision confidence</h3><p>Combine score, risk flags, and company signals to prioritize the best next application.</p></article>
+    </div>
+  </section>
+
+</div>
 
 <!-- ═══════════════ LOADING ═══════════════ -->
 <div class="loading-screen" id="loadingScreen">
