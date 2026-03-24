@@ -2342,6 +2342,11 @@ header {
       <select class="ctrl-select" id="locationSel" onchange="onLocationChange()">
         <option value="">All Locations</option>
       </select>
+      <select class="ctrl-select" id="remoteSel" onchange="onRemoteChange()">
+        <option value="">Remote &amp; On-site</option>
+        <option value="remote">🌐 Remote Only</option>
+        <option value="onsite">🏢 On-site Only</option>
+      </select>
       <button id="noFlagToggle" onclick="toggleNoFlag()" class="ctrl-toggle">🚩 Hide Flagged</button>
       <div class="sort-group">
         <span class="sort-label">Sort</span>
@@ -2623,6 +2628,7 @@ function unmarkApplied(id) { appliedSet.delete(id); saveApplied(appliedSet); }
 // ── State ───────────────────────────────────────────────────
 let activeCat = 'all';
 let activeLocation = '';
+let activeRemote = '';
 let activeJobId = null;
 let hideFlags = false;
 
@@ -2722,6 +2728,10 @@ function updateActiveFilters() {
     label: activeLocation,
     clear: () => { activeLocation = ''; document.getElementById('locationSel').value = ''; document.getElementById('locationSel').classList.remove('has-value'); updateActiveFilters(); render(); }
   });
+  if (activeRemote) tags.push({
+    label: activeRemote === 'remote' ? '🌐 Remote Only' : '🏢 On-site Only',
+    clear: () => { activeRemote = ''; document.getElementById('remoteSel').value = ''; document.getElementById('remoteSel').classList.remove('has-value'); updateActiveFilters(); render(); }
+  });
   if (activeCat !== 'all') {
     const labels = {strong:'Strong Match',maybe:'Maybe',weak:'Weak',applied:'Applied',flagged:'Hard Flagged',no:'No Match'};
     tags.push({ label: labels[activeCat] || activeCat, clear: () => setCategory('all') });
@@ -2733,6 +2743,13 @@ function updateActiveFilters() {
 function onLocationChange() {
   activeLocation = document.getElementById('locationSel').value;
   document.getElementById('locationSel').classList.toggle('has-value', !!activeLocation);
+  currentPage = 1;
+  updateActiveFilters(); render();
+}
+
+function onRemoteChange() {
+  activeRemote = document.getElementById('remoteSel').value;
+  document.getElementById('remoteSel').classList.toggle('has-value', !!activeRemote);
   currentPage = 1;
   updateActiveFilters(); render();
 }
@@ -2789,7 +2806,14 @@ function render() {
       : j.category === activeCat;
     const matchLoc  = !activeLocation || ((j.state || '') === activeLocation);
     const matchFlag = !hideFlags || (!j.flags || j.flags.length === 0);
-    return matchQ && matchCat && matchLoc && matchFlag;
+    const isRemoteJob = j.remote === true || j.remote === 'true' || j.remote === 1
+      || /\bremote\b/i.test(j.location || '')
+      || /\bremote\b/i.test(j.work_type || '')
+      || /\bremote\b/i.test(j.job_type || '');
+    const matchRemote = !activeRemote
+      || (activeRemote === 'remote' && isRemoteJob)
+      || (activeRemote === 'onsite' && !isRemoteJob);
+    return matchQ && matchCat && matchLoc && matchFlag && matchRemote;
   });
 
   jobs = sortJobs(jobs);
