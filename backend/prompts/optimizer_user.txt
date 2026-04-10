@@ -1,0 +1,16 @@
+
+This is my Resume
+<<RESUME>>
+{resume_text}
+<<RESUME>>
+
+
+Target Job:
+Company: {company}
+Position: {position}
+
+Job Description Analysis:
+{jd_analysis}
+
+Optimize my resume for this role following all rules in the system prompt.
+Return only the JSON object.

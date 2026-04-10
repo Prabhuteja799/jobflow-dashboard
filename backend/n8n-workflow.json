@@ -1,0 +1,1987 @@
+{
+  "name": "My workflow 3",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Collapse all Job_ID rows into a single array and pass forward\nconst existingIds = $input.all()\n  .map(r => String(r.json['Job_ID'] || r.json['job_id'] || Object.values(r.json)[0] || '').trim())\n  .filter(Boolean);\n\nreturn [{ json: { existingIds } }];"
+      },
+      "id": "9bc81aaa-238f-406e-83c6-eb903e74953c",
+      "name": "📦 Collect Existing IDs1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2320,
+        288
+      ],
+      "notes": "Step 2 — collapses all rows into one item: { existingIds: [...] }"
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n ╔══════════════════════════════════════════════════════════════╗\n ║     🔬 SMART FILTER + DUPLICATE CHECKER (all-in-one)        ║\n ║                                                              ║\n ║  FILTER RULES:                                               ║\n ║    ✅ Must have Java + Spring Boot in title/desc/skills      ║\n ║    ✅ Experience lower bound must be ≤ 6 yrs                 ║\n ║       \"1-6 yrs\" ✅  \"3-8 yrs\" ✅  \"7+ yrs\" ❌              ║\n ║    ❌ Exclude titles: Staff, Principal, Fellow,              ║\n ║                       Director, VP, Manager                  ║\n ║    ❌ Exclude: GC, Green Card, Security Clearance,           ║\n ║               TS/SCI, Top Secret, US Citizen required        ║\n ║                                                              ║\n ║  DUPLICATE CHECK:                                            ║\n ║    ❌ Skip if Job_ID already in Google Sheet                 ║\n ║    ❌ Skip if Job_ID seen earlier in this same batch         ║\n ╚══════════════════════════════════════════════════════════════╝\n*/\n\n// $input has the JSearch API response.\n// existingIds came from '📦 Collect Existing IDs' — still accessible via $('...')\n// since it ran before this node in a straight sequential chain.\n// const jobs = $input.first().json.data.flatMap(item => item.data || []);\n\nconst jobs = ($input.first().json.data || []).flat();\n\nconst existingIds = new Set(\n  $('📦 Collect Existing IDs1').first().json.existingIds || []\n);\n\nif (!jobs.length) {\n  return [{ json: {\n    unique_jobs: [], filtered_jobs: [],\n    passed_count: 0, filtered_count: 0, total_fetched: 0, __empty: true\n  }}];\n}\n\n// ─── Patterns ───────────────────────────────────────────────────\nconst EXCL_TITLES = [\n  /\\bstaff\\b/i, /\\bprincipal\\b/i, /\\bfellow\\b/i,\n  /\\bdirector\\b/i, /\\bvp\\b/i, /\\bvice\\s+president/i,\n  /\\bmanager\\b/i, /\\blead\\s+engineer/i\n];\nconst EXCL_CLEARANCE_KEYWORDS = [\n  \"green card\",\n  \"gc required\",\n  \"security clearance\",\n  \"clearance required\",\n  \"clearance needed\",\n  \"active clearance\",\n  \"must be a us citizen\",\n  \"must be us citizen\",\n  \"us citizenship required\",\n  \"ts/sci\",\n  \"ts-sci\",\n  \"secret\",\n  \"secret clearance\",\n  \"top secret\",\n  \"dod clearance\",\n  \"gc holder\",\n  \"polygraph\",\n  \"require gc\",\n  \"must hold clearance\"\n];\n// ────────────────────────────────────────────────────────────────\n\nconst uniqueJobs   = [];\nconst filteredJobs = [];\nconst seenBatch    = new Set();\n\nfor (const job of jobs) {\n  const title      = (job.job_title || '').trim();\n  const desc       = (job.job_description || '').trim();\n  const skills     = (job.job_required_skills || []).join(' ');\n  const searchable = `${title} ${desc} ${skills}`.toLowerCase();\n  const jobId      = job.job_id || '';\n  let   rejectReason = null;\n\n  // 1 — Must have Java AND Spring Boot\n  const hasJava       = /\\bjava\\b/i.test(searchable);\n  const hasSpringBoot = /spring[\\s\\-]*boot|springboot/i.test(searchable);\n  if (!hasJava ) {  //|| !hasSpringBoot\n    rejectReason = `Missing tech — java:${hasJava} springBoot:${hasSpringBoot}`;\n  }\n\n  // 2 — Exclude senior titles\n  if (!rejectReason) {\n    for (const p of EXCL_TITLES) {\n      if (p.test(title)) { rejectReason = `Excluded title: \"${title}\"`; break; }\n    }\n  }\n\n  // 3 — Exclude clearance/GC\n  if (!rejectReason) {\n    const matchedKeyword = EXCL_CLEARANCE_KEYWORDS.find(kw =>      searchable.includes(kw));\n    if (matchedKeyword) {\n      rejectReason = `Clearance/GC required (${matchedKeyword})`;\n    }\n}\n\n  // 4 — Experience: lower bound must be ≤ 6\n  if (!rejectReason) {\n    let minYears = null;\n    const expMonths = job.job_required_experience?.required_experience_in_months;\n    if (expMonths != null) minYears = expMonths / 12;\n\n    if (minYears === null) {\n      const rm = desc.match(/(\\d+)\\s*(?:to|[-–])\\s*(\\d+)\\s*\\+?\\s*years?/i);\n      if (rm) {\n        minYears = parseInt(rm[1], 10);\n      } else {\n        const sm = desc.match(/(?:minimum|at least|over|\\b)(\\d+)\\+?\\s*years?\\s*(?:of\\s*)?(?:experience|exp)/i);\n        if (sm) minYears = parseInt(sm[1], 10);\n      }\n    }\n    if (minYears !== null && minYears > 6) {\n      rejectReason = `Exp min too high: ${minYears.toFixed(1)} yrs (must start ≤6)`;\n    }\n  }\n\n  // 5 — Duplicate check\n  if (!rejectReason) {\n    if (existingIds.has(jobId) || seenBatch.has(jobId)) {\n      rejectReason = `Duplicate — Job_ID already in sheet`;\n    } else {\n      seenBatch.add(jobId);\n    }\n  }\n\n  const url = job.job_apply_link || '';\n  // Route result\n  if (rejectReason) {\n    filteredJobs.push({job_url : url ? `=HYPERLINK(\"${url}\",\"${title.replace(/\"/g, '\"\"')}\")` : '', job_id: jobId, title, company: job.employer_name || '', reject_reason: rejectReason });\n  } else {\n    // Map to sheet schema\n    let postedAge = 'Unknown';\n    if (job.job_posted_at_datetime_utc) {\n      const diffMs = Date.now() - new Date(job.job_posted_at_datetime_utc).getTime();\n      const h = Math.floor(diffMs / 3600000), d = Math.floor(h / 24);\n      postedAge = d > 0 ? `${d}d ago` : h > 0 ? `${h}h ago` : 'Just now';\n    }\n    \n    let pub = job.job_publisher || '';\n    if (!pub) {\n      if      (url.includes('linkedin'))     pub = 'LinkedIn';\n      else if (url.includes('ziprecruiter')) pub = 'ZipRecruiter';\n      else if (url.includes('indeed'))       pub = 'Indeed';\n      else if (url.includes('glassdoor'))    pub = 'Glassdoor';\n      else if (url.includes('lever'))        pub = 'Lever';\n      else if (url.includes('greenhouse'))   pub = 'Greenhouse';\n      else if (url.includes('workday'))      pub = 'Workday';\n      else                                   pub = 'Direct';\n    }\n    const em = job.job_required_experience?.required_experience_in_months;\n    const expLabel = em ? ` | Exp: ~${(em/12).toFixed(0)} yrs` : '';\n\n    uniqueJobs.push({\n      Job_ID:         jobId,\n      Publisher:      pub,\n      Company:        job.employer_name || '',\n      Raw_URL:        url,\n      Job_URL:        url ? `=HYPERLINK(\"${url}\",\"${title.replace(/\"/g, '\"\"')}\")` : '',\n      Location:       [job.job_city, job.job_state].filter(Boolean).join(', ') + (job.job_is_remote ? ' (Remote)' : ''),\n      Posted_Age:     postedAge,\n     Posted_At: (() => {\n  const d = job.job_posted_at_datetime_utc ? new Date(job.job_posted_at_datetime_utc) : new Date();\n  return d.toLocaleString('en-US', { timeZone: 'America/New_York', month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });\n})(),\n      Last_Checked:   new Date().toISOString(),\n      Notes:          `Imported from JSearch${expLabel}`,\n      Position:       title,\n      Priority:       'Medium',\n      Application_ID: '',\n      Status:         'Not Applied',\n      Job_Desc:  job.job_description,\n      // Add this one field to every uniqueJobs.push()\nResume_Profile: JSON.stringify($getWorkflowStaticData('global').resumeProfile)\n    });\n  }\n}\n\nconsole.log(`Total: ${jobs.length} | Passed: ${uniqueJobs.length} | Rejected: ${filteredJobs.length}`);\n\nreturn [{ json: {\n  unique_jobs:    uniqueJobs,\n  filtered_jobs:  filteredJobs,\n  passed_count:   uniqueJobs.length,\n  filtered_count: filteredJobs.length,\n  total_fetched:  jobs.length\n}}];"
+      },
+      "id": "bb415f0c-4c89-4ae7-ab67-1b67b7df43e5",
+      "name": "🔬 Filter + Dedupe1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        16
+      ],
+      "onError": "continueRegularOutput",
+      "notes": "Step 4 — all filtering AND duplicate detection in one node. Sequential chain means '📦 Collect Existing IDs' is always already executed."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.passed_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              },
+              "id": "4fecba9b-3e87-4206-9f2f-1786ed6046ac"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "41d05813-37cc-492d-a5de-c47714204585",
+      "name": "🔀 Has New Jobs?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const { unique_jobs } = $input.first().json;\nreturn unique_jobs.map(job => ({ json: job }));"
+      },
+      "id": "58a8e321-d981-4c2c-bfc6-b77649c49ce8",
+      "name": "📝 Split Jobs into Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "JobTracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "06ec5d1f-d4ed-4003-b60b-7f36e2b63419",
+      "name": "📋 Read Existing Job_IDs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        -2544,
+        288
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "acDtuMTlxOSD1zUE",
+          "name": "Google Sheets account"
+        }
+      },
+      "notes": "Reads only column A (Job_ID) for duplicate detection. Update sheet name if yours differs from 'Sheet1'."
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "JobTracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job_ID": "={{ $json.Job_ID }}",
+            "Publisher": "={{ $json.Publisher }}",
+            "Company": "={{ $json.Company }}",
+            "Job_URL": "={{ $json.Job_URL }}",
+            "Location": "={{ $json.Location }}",
+            "Posted_Age": "={{ $json.Posted_Age }}",
+            "Posted_At": "={{ $json.Posted_At }}",
+            "Last_Checked": "={{ $json.Last_Checked }}",
+            "Notes": "={{ $json.Notes }}",
+            "Position": "={{ $json.Position }}",
+            "Priority": "={{ $json.Priority }}",
+            "Status": "={{ $json.Status }}",
+            "Job_Desc": "={{ $json.Job_Desc }}",
+            "Application_ID": "=",
+            "Raw_URL": "={{ $json.Raw_URL }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Job_ID",
+              "displayName": "Job_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Publisher",
+              "displayName": "Publisher",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job_URL",
+              "displayName": "Job_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posted_Age",
+              "displayName": "Posted_Age",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posted_At",
+              "displayName": "Posted_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Last_Checked",
+              "displayName": "Last_Checked",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Position",
+              "displayName": "Position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Application_ID",
+              "displayName": "Application_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job_Desc",
+              "displayName": "Job_Desc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Raw_URL",
+              "displayName": "Raw_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Resume_Profile",
+              "displayName": "Resume_Profile",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "2eafb5c3-055d-45da-a5f0-99ab5e14e759",
+      "name": "✅ Append to Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        272,
+        144
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "acDtuMTlxOSD1zUE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "=https://drive.google.com/file/d/1N1Zr9jjB6lWBp5vIwYBcNHqt7QYThKXb/view?usp=sharing",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "id": "9c7b02fd-7fa5-47a1-91e2-0350580ca9b2",
+      "name": "📥 Download Resume from Drive1",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -2096,
+        288
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "n9PnJy1wWzqPgfFp",
+          "name": "Google Drive account"
+        }
+      },
+      "notes": "Set RESUME_FILE_ID in n8n env vars — copy the ID from your Google Drive resume PDF URL. This runs once per job item."
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "ef3facc2-3ba3-4c51-b0bf-7f0fd3b63f08",
+      "name": "📄 Extract Resume Text1",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -1872,
+        288
+      ],
+      "notes": "Converts the PDF binary into plain text. Output is in $json.text"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const job = $('📝 Split Jobs into Rows').item.json;\nconst raw = $json.output?.[0]?.content?.[0]?.text || '';\n\nlet ats = {};\ntry {\n  const cleaned = raw\n    .replace(/^```json\\s*/i, '')\n    .replace(/^```\\s*/i, '')\n    .replace(/```\\s*$/i, '')\n    .trim();\n  ats = JSON.parse(cleaned);\n} catch (e) {\n  ats = {\n    fitScore: 0,\n    confidence: 0,\n    decision: 'parse_error',\n    hardFlags: ['parse_error'],\n    seniorityMismatch: false,\n    matchedStrengths: [],\n    missingMustHaves: [],\n    scoreJustification: `Parse failed: ${e.message}`,\n    coverLetter: ''\n  };\n}\n\n// Clean hyperlink formula\nlet rawUrl = job.Job_URL || '';\nconst urlMatch = rawUrl.match(/=HYPERLINK\\(\"(https?:\\/\\/[^\"]+)\"/);\nif (urlMatch) rawUrl = urlMatch[1];\n\n// Helper functions\nfunction parseFlags(raw) {\n  if (!raw) return [];\n  return String(raw).split(',').map(f => f.trim()).filter(Boolean).map(f => {\n    if (f === 'senior_title')    return 'Senior Title';\n    if (f.includes('6plus'))     return '6+ Years Required';\n    if (f.includes('clearance')) return 'Clearance / Citizenship';\n    return f;\n  });\n}\nfunction getState(loc) {\n  if (!loc) return '';\n  if (/remote/i.test(loc) && !String(loc).includes(',')) return 'Remote';\n  const m = String(loc).match(/,\\s*([A-Za-z][A-Za-z\\s]{1,18})(?:\\s*\\(|$)/);\n  return m ? m[1].trim() : '';\n}\nfunction extractUrl(raw) {\n  if (!raw) return '';\n  const m = String(raw).match(/https?:\\/\\/[^\\s\"]+/);\n  return m ? m[0] : '';\n}\n\nfunction parseDate(val) {\n  if (!val) return null;\n  const s = String(val).trim();\n  // Handle \"MM/DD/YYYY, H:MM AM/PM\" — Google Sheets locale format\n  const fmts = [\n    { r: /^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4}),?\\s*(\\d{1,2}):(\\d{2})\\s*(AM|PM)$/i,\n      fn: (mm,dd,yyyy,hh,min,ap) => {\n        let h = parseInt(hh);\n        if (ap.toUpperCase() === 'PM' && h !== 12) h += 12;\n        if (ap.toUpperCase() === 'AM' && h === 12) h = 0;\n        return new Date(parseInt(yyyy), parseInt(mm)-1, parseInt(dd), h, parseInt(min)).toISOString();\n      }\n    }\n  ];\n  for (const {r, fn} of fmts) {\n    const m = s.match(r);\n    if (m) try { return fn(...m.slice(1)); } catch {}\n  }\n  // Fallback — ISO strings\n  try {\n    const d = new Date(s);\n    if (!isNaN(d.getTime())) return d.toISOString();\n  } catch {}\n  return null;\n}\n\nconst category = ats.decision === 'strong_match' ? 'strong'\n               : ats.decision === 'maybe'         ? 'maybe'\n               : ats.decision === 'weak'           ? 'weak'\n               : ats.decision === 'no'             ? 'no'\n               :                                    'no';\n\n// Build dashboard job object for Gist (passed to next node)\nconst gistJob = (ats.decision && ats.decision !== 'parse_error' && job.Job_ID) ? {\n  id:            String(job.Job_ID),\n  category,\n  company:       String(job.Company  || '').trim(),\n  position:      String(job.Position || '').trim(),\n  location:      String(job.Location || '').trim(),\n  state:         getState(job.Location),\n  url:           extractUrl(rawUrl || ''),\n  score:         parseFloat(ats.fitScore) || 0,\n  ats_resume:    String(job.ATS_Resume || ''),\n  job_desc:      String(job.Job_Desc   || ''),\n  tags:          (ats.matchedStrengths || []).join(' | ').split('|').map(s => s.trim()).filter(Boolean).slice(0, 6),\n  missing_tags:  (ats.missingMustHaves || []).join(' | ').split('|').map(s => s.trim()).filter(Boolean).slice(0, 4),\n  flags:         parseFlags((ats.flags || []).join(', ')),\n  justification: String(ats.scoreJustification || ''),\n  cover:         String(ats.coverLetter        || ''),\n  posted_dt:     parseDate(job.Posted_At),\n  publisher:     String(job.Publisher || '').trim(),\n} : null;\n\nreturn {\n  json: {\n    // ── Sheet columns (unchanged) ──\n    Job_ID:             job.Job_ID,\n    Publisher:          job.Publisher,\n    Company:            job.Company,\n    Position:           job.Position,\n    Job_URL:            job.Job_URL,\n    Description:        job.Job_Desc,\n    Location:           job.Location,\n    Last_Checked:       job.Last_Checked,\n    Posted_Age:         job.Posted_Age,\n    'Posted At':        job.Posted_At,\n    FitScore:           ats.fitScore    ?? 0,\n    Decision:           ats.decision    ?? '',\n    Confidence:         ats.confidence  ?? 0,\n    Hard_Flags:         (ats.flags            || []).join(', '),\n    Strengths:          (ats.matchedStrengths || []).join(' | '),\n    Missings:           (ats.missingMustHaves || []).join(' | '),\n    SeniorityMismatch:  ats.seniorityMismatch ? 'Yes' : 'No',\n    ScoreJustification: ats.scoreJustification ?? '',\n    CoverLetter:        ats.coverLetter        ?? '',\n    // ── Gist job object (passed to next node) ──\n    _gistJob: gistJob ? JSON.stringify(gistJob) : null\n  }\n};\n\n\n// const job = $('📝 Split Jobs into Rows').item.json;\n// const raw = $json.output?.[0]?.content?.[0]?.text || '';\n\n// let ats = {};\n// try {\n//   const cleaned = raw\n//     .replace(/^```json\\s*/i, '')\n//     .replace(/^```\\s*/i, '')\n//     .replace(/```\\s*$/i, '')\n//     .trim();\n//   ats = JSON.parse(cleaned);\n// } catch (e) {\n//   ats = {\n//     fitScore: 0,\n//     confidence: 0,\n//     decision: 'parse_error',\n//     hardFlags: ['parse_error'],\n//     seniorityMismatch: false,\n//     matchedStrengths: [],\n//     missingMustHaves: [],\n//     scoreJustification: `Parse failed: ${e.message}`,\n//     coverLetter: ''\n//   };\n// }\n\n// // Clean hyperlink formula\n// let rawUrl = job.Job_URL || '';\n// const urlMatch = rawUrl.match(/=HYPERLINK\\(\"(https?:\\/\\/[^\"]+)\"/);\n// if (urlMatch) rawUrl = urlMatch[1];\n\n// // Helper functions\n// function parseFlags(raw) {\n//   if (!raw) return [];\n//   return String(raw).split(',').map(f => f.trim()).filter(Boolean).map(f => {\n//     if (f === 'senior_title')    return 'Senior Title';\n//     if (f.includes('6plus'))     return '6+ Years Required';\n//     if (f.includes('clearance')) return 'Clearance / Citizenship';\n//     return f;\n//   });\n// }\n// function getState(loc) {\n//   if (!loc) return '';\n//   if (/remote/i.test(loc) && !String(loc).includes(',')) return 'Remote';\n//   const m = String(loc).match(/,\\s*([A-Za-z][A-Za-z\\s]{1,18})(?:\\s*\\(|$)/);\n//   return m ? m[1].trim() : '';\n// }\n// function extractUrl(raw) {\n//   if (!raw) return '';\n//   const m = String(raw).match(/https?:\\/\\/[^\\s\"]+/);\n//   return m ? m[0] : '';\n// }\n// function parseDate(val) {\n//   if (!val) return null;\n//   try { return new Date(val).toISOString(); } catch { return null; }\n// }\n\n// const category = ats.decision === 'strong_match' ? 'strong'\n//                : ats.decision === 'maybe'         ? 'maybe'\n//                : ats.decision === 'weak'           ? 'weak'\n//                : ats.decision === 'no'             ? 'no'\n//                :                                    'no';\n\n// // Build dashboard job object for Gist (passed to next node)\n// const gistJob = (ats.decision && ats.decision !== 'parse_error' && job.Job_ID) ? {\n//   id:            String(job.Job_ID),\n//   category,\n//   company:       String(job.Company  || '').trim(),\n//   position:      String(job.Position || '').trim(),\n//   location:      String(job.Location || '').trim(),\n//   state:         getState(job.Location),\n//   url:           extractUrl(rawUrl || ''),\n//   score:         parseFloat(ats.fitScore) || 0,\n//   tags:          (ats.matchedStrengths || []).join(' | ').split('|').map(s => s.trim()).filter(Boolean).slice(0, 6),\n\n//   missing_tags:  (ats.missingMustHaves || []).join(' | ').split('|').map(s => s.trim()).filter(Boolean).slice(0, 4),\n//   flags:         parseFlags((ats.flags || []).join(', ')),\n//   justification: String(ats.scoreJustification || ''),\n//   cover:         String(ats.coverLetter        || ''),\n//   posted_dt:     parseDate(job.Posted_At),\n//   publisher:     String(job.Publisher || '').trim(),\n// } : null;\n\n// return {\n//   json: {\n//     // ── Sheet columns (unchanged) ──\n//     Job_ID:             job.Job_ID,\n//     Publisher:          job.Publisher,\n//     Company:            job.Company,\n//     Position:           job.Position,\n//     Job_URL:            job.Job_URL,\n//     Location:           job.Location,\n//     Last_Checked:       job.Last_Checked,\n//     Posted_Age:         job.Posted_Age,\n//     'Posted At':        job.Posted_At,\n//     FitScore:           ats.fitScore    ?? 0,\n//     Decision:           ats.decision    ?? '',\n//     Confidence:         ats.confidence  ?? 0,\n//     Hard_Flags:         (ats.flags            || []).join(', '),\n//     Strengths:          (ats.matchedStrengths || []).join(' | '),\n//     Missings:           (ats.missingMustHaves || []).join(' | '),\n//     SeniorityMismatch:  ats.seniorityMismatch ? 'Yes' : 'No',\n//     ScoreJustification: ats.scoreJustification ?? '',\n//     CoverLetter:        ats.coverLetter        ?? '',\n//     // ── Gist job object (passed to next node) ──\n//     _gistJob: gistJob ? JSON.stringify(gistJob) : null\n//   }\n// };\n\n// // The OpenAI Responses node outputs ONE item per job — not batched.\n// // Each $input item = one job result.\n// // $input.all() gives us all 5 (or N) items.\n\n// const allJobs   = $('📝 Split Jobs into Rows').all();\n// const allInputs = $input.all();\n\n// const results = [];\n\n// for (let i = 0; i < allInputs.length; i++) {\n//   const job = allJobs[i]?.json;\n//   if (!job) continue;\n\n//   // Each input item: output is an array, first element has content[0].text\n//   const raw = allInputs[i].json?.output?.[0]?.content?.[0]?.text || '';\n\n//   let ats = {};\n//   try {\n//     const cleaned = raw\n//       .replace(/^```json\\s*/i, '')\n//       .replace(/^```\\s*/i,    '')\n//       .replace(/```\\s*$/i,    '')\n//       .trim();\n//     ats = JSON.parse(cleaned);\n//   } catch (e) {\n//     ats = {\n//       fitScore:           0,\n//       confidence:         0,\n//       decision:           'parse_error',\n//       hardFlags:          ['parse_error'],\n//       seniorityMismatch:  false,\n//       matchedStrengths:   [],\n//       missingMustHaves:   [],\n//       scoreJustification: `Parse failed at index ${i}: ${e.message}`,\n//       coverLetter:        ''\n//     };\n//   }\n\n//   // Strip HYPERLINK formula → raw URL\n//   let rawUrl = job.Job_URL || '';\n//   const urlMatch = rawUrl.match(/=HYPERLINK\\(\"(https?:\\/\\/[^\"]+)\"/);\n//   if (urlMatch) rawUrl = urlMatch[1];\n\n//   results.push({ json: {\n//     Job_ID:             job.Job_ID,\n//     Publisher:          job.Publisher,\n//     Company:            job.Company,\n//     Job_URL:            rawUrl,\n//     Location:           job.Location,\n//     Last_Checked:       job.Last_Checked,\n//     Posted_Age:         job.Posted_Age,\n//     'Posted At':        job.Posted_At,\n//     FitScore:           ats.fitScore           ?? 0,\n//     Decision:           ats.decision           ?? '',\n//     Confidence:         ats.confidence         ?? 0,\n//     Hard_Flags:         (ats.hardFlags         || []).join(', '),\n//     Strengths:          (ats.matchedStrengths  || []).join(' | '),\n//     Missings:           (ats.missingMustHaves  || []).join(' | '),\n//     SeniorityMismatch:  ats.seniorityMismatch  ? 'Yes' : 'No',\n//     ScoreJustification: ats.scoreJustification ?? '',\n//     CoverLetter:        ats.coverLetter        ?? ''\n//   }});\n// }\n\n// console.log(`Parsed ${results.length} of ${allInputs.length} ATS results`);\n// return results;\n// One job per execution (Loop Over Items batch = 1)\n//Original\n\n// const job =$('📝 Split Jobs into Rows').item.json// Current job row\n// // const job = $('Get row(s) in sheet').item.json\n// const raw = $json.output?.[0]?.content?.[0]?.text || '';\n\n// let ats = {};\n\n// try {\n//   const cleaned = raw\n//     .replace(/^```json\\s*/i, '')\n//     .replace(/^```\\s*/i, '')\n//     .replace(/```\\s*$/i, '')\n//     .trim();\n\n//   ats = JSON.parse(cleaned);\n\n// } catch (e) {\n//   ats = {\n//     fitScore: 0,\n//     confidence: 0,\n//     decision: 'parse_error',\n//     hardFlags: ['parse_error'],\n//     seniorityMismatch: false,\n//     matchedStrengths: [],\n//     missingMustHaves: [],\n//     scoreJustification: `Parse failed: ${e.message}`,\n//     coverLetter: ''\n//   };\n// }\n\n\n// //let rawUrl = job.Job_Url|| ''; \n\n// // Clean hyperlink formula\n// let rawUrl = job.Job_URL|| '';\n// const urlMatch = rawUrl.match(/=HYPERLINK\\(\"(https?:\\/\\/[^\"]+)\"/);\n// if (urlMatch) rawUrl = urlMatch[1];\n\n\n// return {\n//   json: {\n//     Job_ID: job.Job_ID,\n//     Publisher: job.Publisher,\n//     Company: job.Company,\n//     Job_URL: job.Job_URL,\n//     Location: job.Location,\n//     Last_Checked: job.Last_Checked,\n//     Posted_Age: job.Posted_Age,\n//     'Posted At': job.Posted_At,\n//     FitScore: ats.fitScore ?? 0,\n//     Decision: ats.decision ?? '',\n//     Confidence: ats.confidence ?? 0,\n//     Hard_Flags: (ats.flags || []).join(', '),\n//     Strengths: (ats.matchedStrengths || []).join(' | '),\n//     Missings: (ats.missingMustHaves || []).join(' | '),\n//     SeniorityMismatch: ats.seniorityMismatch ? 'Yes' : 'No',\n//     ScoreJustification: ats.scoreJustification ?? '',\n//     CoverLetter: ats.coverLetter ?? ''\n//   }\n// };\n//Till here\n\n// const job = $('Get row(s) in sheet').item.json;\n// const raw = $json.output?.[0]?.content?.[0]?.text || '';\n\n// let ats = {};\n\n// try {\n//   const cleaned = raw\n//     .replace(/^```json\\s*/i, '')\n//     .replace(/^```\\s*/i, '')\n//     .replace(/```\\s*$/i, '')\n//     .trim();\n//   ats = JSON.parse(cleaned);\n// } catch (e) {\n//   ats = {\n//     fitScore: 0,\n//     confidence: 0,\n//     decision: 'parse_error',\n//     flags: ['parse_error'],\n//     seniorityMismatch: false,\n//     matchedStrengths: [],\n//     missingMustHaves: [],\n//     scoreJustification: `Parse failed: ${e.message}`,\n//     coverLetter: ''\n//   };\n// }\n\n// return {\n//   json: {\n//     Job_ID:            job.Job_ID,\n//     Publisher:         job.Publisher,\n//     Company:           job.Company,\n//     Job_URL:           job.Job_Url,\n//     Location:          job.Location,\n//     Last_Checked:      new Date().toISOString(),\n//     Posted_Age:        job.Posted_Age,\n//     'Posted At':       job['Posted At'],\n//     FitScore:          ats.fitScore          ?? 0,\n//     Decision:          ats.decision          ?? '',\n//     Confidence:        ats.confidence        ?? 0,\n//     Hard_Flags:        (ats.flags            || []).join(', '),\n//     Strengths:         (ats.matchedStrengths || []).join(' | '),\n//     Missings:          (ats.missingMustHaves || []).join(' | '),\n//     SeniorityMismatch: ats.seniorityMismatch ? 'Yes' : 'No',\n//     ScoreJustification: ats.scoreJustification ?? '',\n//     CoverLetter:       ats.coverLetter        ?? ''\n//   }\n// };"
+      },
+      "id": "f0c6c09b-aa29-4b8a-9e6a-ecc48603f393",
+      "name": "✅ Parse ATS Response2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        320
+      ],
+      "notes": "Parses OpenAI JSON. Falls back gracefully on parse errors so the workflow never crashes mid-batch."
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini-2024-07-18",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI-2024-07-18"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a strict resume parser.\nExtract only explicitly written technical skills.\nDo not infer or assume.\nReturn only valid JSON.\nDo not add commentary."
+            },
+            {
+              "content": "=Extract structured backend-focused skill profile from this resume.\n\nReturn ONLY valid JSON in this schema:\n\n{\n\"experience_years\": number,\n\"languages\": [],\n\"backend_frameworks\": [],\n\"messaging\": [],\n\"databases\": [],\n\"cloud\": [],\n\"devops\": [],\n\"security\": [],\n\"frontend_support\": [],\n\"architecture_concepts\": [],\n\"domains\": []\n}\n\nRules:\n\nOnly include skills explicitly written.\n\nNo guessing.\n\nNo explanations.\n\nNo extra fields.\n\nResume text:\n{{$json.text}}"
+            }
+          ]
+        },
+        "simplify": false,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        -1648,
+        288
+      ],
+      "id": "c664d9c9-9282-4695-ac4e-1b37f8136ff9",
+      "name": "Message a model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "eBRL9RpCb5jr5J3Z",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5-chat-latest",
+          "mode": "list",
+          "cachedResultName": "GPT-5-CHAT-LATEST"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a technical recruiter and senior software engineer evaluating job fit for a specific candidate. Be precise, grounded, and consistent. Do not infer skills not present in the resume.\n\n\nCANDIDATE RESUME (source of truth — do not infer skills beyond what is listed):\n<<<RESUME>>>\n\n\nPrabhuteja Chintala\nprabhuteja.dev1@gmail.com | LinkedIn | GitHub | +1 (561) 975-9501 | Boca Raton, FL\n\nPROFESSIONAL SUMMARY\nSoftware Engineer with around 5 years of hands-on experience building and maintaining robust end-to-end web applications across diverse domains. Skilled in both frontend and backend development, with a solid understanding of system design, API development, and database interactions. Proven ability to work in Agile teams, adapt quickly to new technologies, and deliver clean, maintainable code that meets business needs. Passionate about solving real-world problems through technology and continuously improving development practices.\n\nSKILLS\nProgramming Languages: Java (8–17), Python, C, C++, JavaScript\nDatabases: Oracle, MySQL, PostgreSQL, NoSQL, MongoDB, Redis\nFrameworks & Libraries: Spring Boot, Spring MVC, Spring REST, Spring Batch, Spring Security, Spring Data JPA, REST APIs, Hibernate, React.js, Bootstrap, JSON, XML\nCloud & DevOps: Google Cloud Platform, AWS (EC2, S3, Lambda, SQS, SNS, API Gateway, EKS, ELK Stack, CloudFormation), Microsoft Azure, Maven, Docker, Kubernetes, Jenkins, GitHub Actions, GitLab CI, Terraform\nTesting & Tools: JUnit, Mockito, Postman, SoapUI, IntelliJ IDEA\nProject & Collaboration Tools: Maven, Gradle, Agile, Scrum, Jira, Confluence, Git, GitHub, Figma\nAPIs & Messaging: RESTful API, Kafka, RabbitMQ\n\nPROFESSIONAL EXPERIENCE\n\nPrincipal Financial, USA | Software Engineer | February 2025 – Present\n- Designed and maintained backend microservices using Java and Spring Boot to support enterprise systems.\n- Enhanced purchase order processing and supplier ledger reconciliation services using Spring MVC and Spring Data JPA, delivering an 18% improvement in database query performance during peak transaction windows.\n- Refactored finance microservices for budget approvals, supplier onboarding, and expense reporting using Spring Boot with asynchronous messaging, improving transaction throughput and ensuring compliance with financial regulatory standards.\n- Implemented role-based access control (RBAC) with JWT and OAuth2 (access and refresh tokens flow) authentication and integrated ELK stack for financial audit logging, ensuring SOX and internal compliance readiness.\n- Developed secure, finance-focused user interfaces with React.js for digital procurement and invoicing portals, streamlining workflows for finance teams and reducing average page load time by 40% through code splitting and lazy loading.\n- Automated CI/CD pipelines using GitHub Actions and GitLab CI, integrating automated testing to reduce release cycle times by 25% and improve deployment accuracy for transaction-sensitive financial modules.\n- Designed and optimized AWS ECS-based infrastructure for financial applications with Application Load Balancer, CloudWatch, and CloudTrail, achieving 99.99% uptime and reducing cloud operational costs by 20%.\n\nNCR Corporation, India | Software Developer | April 2021 – August 2023\n- Engineered scalable modules using Java 8, Spring Boot, and RESTful APIs for a Product Lifecycle Management (PLM) platform, enabling efficient component tracking, product versioning, and release governance.\n- Designed and deployed microservices architecture with Spring Data JPA and Hibernate integrated into MySQL and Oracle databases, improving structured product data retrieval speeds by 30% and cutting service latency by 25%.\n- Engineered real-time, fault-tolerant data pipelines using Apache Kafka, enhancing system responsiveness and ensuring reliable message delivery across distributed services.\n- Created reusable custom React hooks to streamline enterprise software UI logic, improving maintainability and reducing front-end code duplication by 30% across product lifecycle management applications.\n- Implemented machine learning and NLP solutions (text classification, entity extraction) to deliver intelligent automation features, boosting user engagement and reducing manual intervention in workflows.\n- Partnered with QA and DevOps teams to deliver reliable updates for mission-critical enterprise systems, using Agile methodologies, Jenkins CI/CD pipelines, Git, and Tomcat to ensure seamless deployment and minimal downtime.\n\nRlogical Techsoft | Jr. Software Developer | October 2020 – March 2021\n- Established dynamic, component-driven front-end interfaces using Angular and TypeScript, enabling faster feature implementation, improving UI maintainability, and enhancing cross-module consistency across enterprise applications.\n- Built and optimized Spring MVC-based backend modules to handle complex business workflows, improving API response times by 25% and ensuring scalability for high-volume enterprise transactions.\n- Designed and implemented GraphQL APIs to streamline data retrieval for client applications, reducing over-fetching/under-fetching issues and cutting average data query size by 40%.\n- Developed and maintained secure backend services with Spring Boot and Spring REST, integrating PostgreSQL and MongoDB to power a scalable customer analytics platform serving 10,000+ monthly active users.\n- Integrated REST APIs with Azure-hosted services and external payment gateways, using Postman for validation and debugging, streamlining partner onboarding, and reducing integration time by 20%.\n\nEDUCATION\nFlorida Atlantic University, Florida, USA\nMaster of Science in Computer Science | GPA: 3.8\n\nLovely Professional University, Punjab, India\nB.Tech in Computer Science and Engineering | GPA: 7.8\n\n\n\n<<<END RESUME>>>\n\nThe candidate prefers Java backend-heavy roles (~65% backend, 35% frontend).\n\n\n\n\n---\n\nSTEP 1 — HARD FLAGS (evaluate before scoring):\n\nCheck for each flag independently. A job can have multiple flags.\n\n- \"clearance_or_citizenship_required\" → Job explicitly requires security clearance (secret, top secret, TS/SCI, polygraph) OR restricts to US citizens or green card holders only. If this flag is set, cap fitScore at 40 regardless of other scores.\n- \"senior_title\" → Job title contains any of: Staff / Principal / Lead / Manager / Director / Architect / VP / Head. Match on title only, not job description.\n- \"6plus_years\" → Job explicitly states a minimum of 6 or more years (e.g., \"6+ years\", \"minimum 7 years\", \"at least 6 years\"). Do NOT flag open ranges like \"3–10 years\" or \"4 to 8 years\".\n\nStore all triggered flags in the \"flags\" array. If none apply, return an empty array.\n\n---\n\nSTEP 2 — SCORING (0–100):\n\nEvaluate each dimension independently using the ranges below, then sum for fitScore.\n\nDIMENSION 1: Backend Alignment (0–40)\n- 36–40 → Role is primarily backend. Java, Spring Boot, microservices, AND at least 2 of: Kafka, Redis, system design, distributed systems are required and present in resume.\n- 28–35 → Role is backend-leaning. Java/Spring Boot required, some microservices or messaging present.\n- 16–27 → Role is full-stack with moderate backend. Java or another backend language required, limited overlap with core strengths.\n- 6–15  → Role has backend components but is mostly frontend, .NET, or uses an unrelated stack.\n- 0–5   → Role is frontend-only, pure QA, pure ML research, Salesforce, or SAP.\n\nDIMENSION 2: Core Requirements Match (0–35)\nCount the number of explicitly required skills in the job description that are present in the resume, then apply:\n- 32–35 → 90–100% of required skills matched.\n- 24–31 → 70–89% matched.\n- 15–23 → 50–69% matched.\n- 7–14  → 30–49% matched.\n- 0–6   → Less than 30% matched.\n\nDIMENSION 3: Seniority Alignment (0–15)\n- 13–15 → Role is clearly IC (individual contributor). No team lead, architecture ownership, or management expectations.\n- 8–12  → Role is mostly IC with some informal mentoring or cross-team collaboration expected.\n- 3–7   → Role implies owning a domain, driving architecture decisions, or mentoring junior engineers significantly.\n- 0–2   → Role explicitly requires leading a team, managing engineers, or serving as technical decision-maker for an org.\n\nDIMENSION 4: Bonus (0–10)\n- Award 2–3 pts each for: AWS/GCP/Azure, Docker/Kubernetes, CI/CD pipelines, observability tools (ELK, Prometheus, Datadog, CloudWatch).\n- Cap at 10 pts total.\n\nSCORING PREFERENCES:\n✅ Strongly prefer: Java, Spring Boot, REST APIs, microservices, distributed systems, Kafka, Redis, SQL, cloud infrastructure.\n✅ Good bonus: AWS/GCP/Azure, Docker/K8s, CI/CD pipelines, observability (ELK, Prometheus, Datadog).\n⚠️ Acceptable with penalty: Full-stack roles where backend is clearly dominant. Frontend-supportive is fine; frontend-primary is not.\n❌ Penalize heavily: Frontend-only roles, .NET-only stacks, Salesforce, SAP, pure QA/manual testing, pure data science or ML research — unless resume clearly demonstrates that skill.\n\n---\n\nSTEP 3 — SENIORITY MISMATCH:\n\nSet \"seniorityMismatch\": true ONLY if the job description (not just the title) implies that the candidate would be expected to:\n- Lead or manage a team of engineers\n- Own an entire product or platform architecture\n- Be the sole decision-maker on technical direction\n\nThis is distinct from the \"senior_title\" flag, which is title-based only. A mid-level title can still have seniorityMismatch: true if the responsibilities read like a lead/architect role.\n\n---\n\nSTEP 4 — DECISION:\n\nIf the fit score is 75 or above and there are no hard flags, the decision is a strong match. \nIf the score is 75 or above but hard flags are present, it drops to maybe. \nA score between 60 and 74 is always a maybe regardless of flags. \nA score between 40 and 59 is weak, and anything below 40 is no match.\n\nEDGE CASES:\n- If fitScore is exactly 40 due to the \"clearance_or_citizenship_required\" cap, decision is \"weak\".\n- If fitScore would naturally score below 40 AND clearance cap is also triggered, decision is \"no\".\n- Never return \"strong_match\" if any hard flag is present, regardless of fitScore.\n\n---\n\n\nSTEP 5 — CONFIDENCE SCORE:\n\nSet \"confidence\" (0.0–1.0) based on how complete and clear the job description is:\n- 0.9–1.0 → Description is detailed, lists specific required skills, tech stack, and responsibilities clearly.\n- 0.6–0.8 → Description is moderate — some specifics but gaps exist.\n- 0.3–0.5 → Description is vague, generic, or missing key details (tech stack, seniority, responsibilities).\n- 0.1–0.2 → Description is too sparse to evaluate reliably.\n\nIf the job description is fewer than 50 words or too vague to evaluate meaningfully, set confidence below 0.4, set fitScore to 0, decision to \"no\", and set scoreJustification to \"Insufficient job description to evaluate.\"\n\nThis reflects your certainty in the score, not the candidate's fit.\n\n---\n\nOUTPUT — Return ONLY a single valid JSON object. No markdown. No code fences. No text before or after the JSON.\n\n{\n  \"Job_ID\": \"\",\n  \"Company\": \"\",\n  \"Role\": \"\",\n  \"Location\": \"\",\n  \"Job_URL\": \"\",\n  \"fitScore\": 0,\n  \"confidence\": 0.0,\n  \"decision\": \"strong_match|maybe|weak|no\",\n  \"flags\": [],\n  \"seniorityMismatch\": false,\n  \"matchedStrengths\": [],\n  \"missingMustHaves\": [],\n  \"scoreJustification\": \"\",\n  \"coverLetter\": \"\"\n}\n\nOUTPUT RULES (strictly enforced):\n- Single JSON object only — no arrays, no extra keys, no wrapper objects.\n- All string values in double quotes. No trailing commas.\n- \"flags\" → array of zero or more strings from: \"clearance_or_citizenship_required\", \"senior_title\", \"6plus_years\".\n- \"matchedStrengths\" → 3–6 entries. Each entry must follow this exact format: \"[Specific resume skill or experience] directly addresses [specific job requirement].\" Example: \"4 years of Spring Boot microservices at NCR directly addresses the required distributed systems experience.\" No generic statements. No one-word entries.\n- \"missingMustHaves\" → only skills explicitly required by the job description that are absent from the resume. Empty array if none.\n- \"scoreJustification\" → 2–3 sentences explaining the score, referencing specific skills or gaps. Do not restate the decision.\n- \"seniorityMismatch\" → boolean, evaluated per Step 3 rules above.\n- \"coverLetter\" → empty string \"\" \n- Do NOT invent any skill, technology, company, or achievement not present in the resume."
+            },
+            {
+              "content": "=\n\nJob_ID:      {{ $json.Job_ID }}\nCompany:     {{ $json.Company }}\nPosition:    {{ $json.Position }}\nLocation:    {{ $json.Location }}\nPublisher:   {{ $json.Publisher }}\nPosted_At:   {{ $json.Posted_At }}\nPosted_Age:  {{ $json.Posted_Age }}\nDescription: {{ $json.Job_Desc }}\n\nEvaluate this job against the candidate resume and return the JSON output as instructed."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        496,
+        320
+      ],
+      "id": "b042f30a-d532-4c27-8578-c2281c59af11",
+      "name": "Message a model4",
+      "credentials": {
+        "openAiApi": {
+          "id": "eBRL9RpCb5jr5J3Z",
+          "name": "OpenAi account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get raw model output\nlet raw = $input.first().json.output[0].content[0].text;\n\n// Remove markdown wrappers if present\nraw = raw.replace(/```json/g, '')\n         .replace(/```/g, '')\n         .trim();\n\n// Parse JSON safely\nconst parsed = JSON.parse(raw);\n\n// Store in global workflow static data\nconst staticData = $getWorkflowStaticData('global');\nstaticData.resumeProfile = parsed;\n\n// Return parsed JSON forward\nreturn [\n  {\n    json: parsed\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1296,
+        288
+      ],
+      "id": "f034db39-2c60-4697-8535-ff7cf5665b8a",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.Decision }}",
+                    "rightValue": "strong_match",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "951a7b2a-6b55-427c-a9ec-773bf18349bd"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a0e6902e-ce4f-4a6d-b337-5087730a8c85",
+                    "leftValue": "={{ $json.Decision }}",
+                    "rightValue": "maybe",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "553b74e5-01a8-484e-a3f0-46d3071d78fe",
+                    "leftValue": "={{ $json.Decision }}",
+                    "rightValue": "weak",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "9a5c1ab2-2e85-4ce4-a502-5dc5d8455039",
+                    "leftValue": "={{ $json.Decision }}",
+                    "rightValue": "no",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1296,
+        288
+      ],
+      "id": "11518aa0-9d12-4553-a5c5-8a10cff9346a",
+      "name": "Switch2"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo",
+          "mode": "list",
+          "cachedResultName": "JobTracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1536740402,
+          "mode": "list",
+          "cachedResultName": "StrongMatch",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo/edit#gid=1536740402"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Job_ID"
+          ],
+          "schema": [
+            {
+              "id": "Job_ID",
+              "displayName": "Job_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Publisher",
+              "displayName": "Publisher",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job_URL",
+              "displayName": "Job_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last_Checked",
+              "displayName": "Last_Checked",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posted_Age",
+              "displayName": "Posted_Age",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posted At",
+              "displayName": "Posted At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "FitScore",
+              "displayName": "FitScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Confidence",
+              "displayName": "Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Strengths",
+              "displayName": "Strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Missings",
+              "displayName": "Missings",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "SeniorityMismatch",
+              "displayName": "SeniorityMismatch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Hard_Flags",
+              "displayName": "Hard_Flags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ScoreJustification",
+              "displayName": "ScoreJustification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CoverLetter",
+              "displayName": "CoverLetter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Decision",
+              "displayName": "Decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ATS_Resume",
+              "displayName": "ATS_Resume",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Position",
+              "displayName": "Position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Job_Desc",
+              "displayName": "Job_Desc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1520,
+        320
+      ],
+      "id": "9e1699b2-dd20-414a-89aa-d6ea99c64d1e",
+      "name": "Strong_Match2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "acDtuMTlxOSD1zUE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo",
+          "mode": "list",
+          "cachedResultName": "JobTracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2114365743,
+          "mode": "list",
+          "cachedResultName": "MayBe",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo/edit#gid=2114365743"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Job_ID"
+          ],
+          "schema": [
+            {
+              "id": "Job_ID",
+              "displayName": "Job_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Publisher",
+              "displayName": "Publisher",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job_URL",
+              "displayName": "Job_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last_Checked",
+              "displayName": "Last_Checked",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posted_Age",
+              "displayName": "Posted_Age",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posted At",
+              "displayName": "Posted At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "FitScore",
+              "displayName": "FitScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Confidence",
+              "displayName": "Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Strengths",
+              "displayName": "Strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Missings",
+              "displayName": "Missings",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "SeniorityMismatch",
+              "displayName": "SeniorityMismatch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Hard_Flags",
+              "displayName": "Hard_Flags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ScoreJustification",
+              "displayName": "ScoreJustification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CoverLetter",
+              "displayName": "CoverLetter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Decision",
+              "displayName": "Decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Position",
+              "displayName": "Position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ATS_Resume",
+              "displayName": "ATS_Resume",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Job_Desc",
+              "displayName": "Job_Desc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1520,
+        512
+      ],
+      "id": "2760c8f0-e2d6-495e-8382-41b4dcdd6fd1",
+      "name": "MayBe2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "acDtuMTlxOSD1zUE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo",
+          "mode": "list",
+          "cachedResultName": "JobTracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 718912380,
+          "mode": "list",
+          "cachedResultName": "Weak",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo/edit#gid=718912380"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Job_ID"
+          ],
+          "schema": [
+            {
+              "id": "Job_ID",
+              "displayName": "Job_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Publisher",
+              "displayName": "Publisher",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job_URL",
+              "displayName": "Job_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last_Checked",
+              "displayName": "Last_Checked",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posted_Age",
+              "displayName": "Posted_Age",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posted At",
+              "displayName": "Posted At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "FitScore",
+              "displayName": "FitScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Confidence",
+              "displayName": "Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Strengths",
+              "displayName": "Strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Missings",
+              "displayName": "Missings",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "SeniorityMismatch",
+              "displayName": "SeniorityMismatch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Hard_Flags",
+              "displayName": "Hard_Flags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ScoreJustification",
+              "displayName": "ScoreJustification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CoverLetter",
+              "displayName": "CoverLetter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Decision",
+              "displayName": "Decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1520,
+        704
+      ],
+      "id": "febc320f-ab39-4248-9f2d-65acde1560a7",
+      "name": "Weak2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "acDtuMTlxOSD1zUE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo",
+          "mode": "list",
+          "cachedResultName": "JobTracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1064741177,
+          "mode": "list",
+          "cachedResultName": "No",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1NndDIHb3k3ebG8ijiDxQ6ZlgnFtpyZaqveEi0dJb3xo/edit#gid=1064741177"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Job_ID"
+          ],
+          "schema": [
+            {
+              "id": "Job_ID",
+              "displayName": "Job_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Publisher",
+              "displayName": "Publisher",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job_URL",
+              "displayName": "Job_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last_Checked",
+              "displayName": "Last_Checked",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posted_Age",
+              "displayName": "Posted_Age",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Posted At",
+              "displayName": "Posted At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "FitScore",
+              "displayName": "FitScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Confidence",
+              "displayName": "Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Strengths",
+              "displayName": "Strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Missings",
+              "displayName": "Missings",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "SeniorityMismatch",
+              "displayName": "SeniorityMismatch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Hard_Flags",
+              "displayName": "Hard_Flags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ScoreJustification",
+              "displayName": "ScoreJustification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CoverLetter",
+              "displayName": "CoverLetter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Decision",
+              "displayName": "Decision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1520,
+        896
+      ],
+      "id": "610ff5d2-0a50-4339-8964-52646ef303a8",
+      "name": "No2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "acDtuMTlxOSD1zUE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "=data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        16
+      ],
+      "id": "4a1f7433-f636-4a30-ac4c-feea69aa72ff",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "url": "https://jsearch.p.rapidapi.com/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.query }}"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            },
+            {
+              "name": "num_pages",
+              "value": "49"
+            },
+            {
+              "name": "country",
+              "value": "us"
+            },
+            {
+              "name": "date_posted",
+              "value": "3days"
+            },
+            {
+              "name": "exclude_job_publishers",
+              "value": "Trabajo.org, Jobs For Stevenage Fans, Jooble,Jobilize, WhatJobs, JobLeads, Security Clearance Jobs, Digitalhire,Learn4Good,Jobgether,Recruit.net,Jobrapido,Trovit,Jobs Trabajo.org, Jobsora, Jobomas, BeBee, Snagajob, Getwork, Nexxt, Jobs2Careers,CareerArc,Talent.com,CareerBuilder,Craigslist,SimplyHired,Lensa,Ladders"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-host",
+              "value": "jsearch.p.rapidapi.com"
+            },
+            {
+              "name": "x-rapidapi-key",
+              "value": "2510ac7407mshd8064d4ffe8a6b3p15744cjsn90765101badc"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -624,
+        224
+      ],
+      "id": "791bfe83-399e-41ef-8a97-a88e41b8cb74",
+      "name": "🔍 JSearch - Java Spring Boot Jobs1",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -848,
+        288
+      ],
+      "id": "252e13f8-1a41-470f-a34d-c5e67a48b245",
+      "name": "Loop Over Items3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Define all job title queries to cycle through\nconst queries = [\n\n  \"Software Engineer Jobs in Florida\",\n  \"Java Developer Jobs in Florida\",\n  \"Backend Engineer Jobs in Florida\",\n  \"Software Engineer Jobs in Georgia\",\n  \"Java Developer Jobs in Georgia\",\n  \"Backend Engineer Jobs in Georgia\",\n  \"Software Engineer Jobs in New York\",\n  \"Backend Engineer Jobs in New York\",\n  \"Java Developer Jobs in New York\",\n  \n  // \"Java Developer Jobs in New York\",\n  // \"Software Engineer Jobs in California\",\n  // \"Java Developer Jobs in California\",\n  // \"Software Engineer Jobs in Texas\",\n  // \"Java Developer Jobs in Texas\"\n // //  \"Java Backend Developer\",\n //  \"Software Engineer Jobs in Florida\",\n //  \"Java Developer Jobs in Florida\",\n //  \"Software Engineer Jobs in Texas\",\n //  \"Java Developer Jobs in Texas\",\n //  \"Software Engineer Jobs in Georgia\",\n //  \"Java Developer Jobs in Georgia\",\n //   \"Software Engineer Jobs in New York\",\n //  \"Java Developer Jobs in New York\",\n //   \"Software Engineer Jobs in California\",\n //  \"Java Developer Jobs in California\",\n //  \"Software Engineer \",\n //  \"Java Developer\",\n //  \"Software Engineer II\",\n //  \"Backend Engineer\",\n //  //\"Distributed Systems Engineer\",\n //  \"Platform Engineer\",\n //  \"API Developer\",\n // // \"Cloud Backend Engineer\",\n //  \"Java Full Stack Developer\",\n //  \"Application Developer Java\",\n //  //\"Systems Software Engineer\"\n];\n\n\n// Output each query as a separate item so JSearch loops over all of them\nreturn queries.map(query => ({ json: { query } }));\n\n\n  \n\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1072,
+        288
+      ],
+      "id": "5a8f617a-7247-44d1-a37e-3a564fe46fa2",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        272,
+        672
+      ],
+      "id": "942db5d5-414e-4319-8e23-80bada4be269",
+      "name": "Loop Over Items4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Strip gist fields, restore original ATS data for Switch node\nconst atsData = $('✅ Parse ATS Response2').item.json;\nconst { _gistJob, ...passthrough } = atsData;\nreturn { json: passthrough };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        320
+      ],
+      "id": "35f68d18-2f23-49ae-b524-a2a0376f71f6",
+      "name": "➡️ Pass Through to Switch2"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 23 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "f77ddc3b-33e6-48f5-b0c1-0f13f86b442f",
+      "name": "⏰WeekDay Mrng Trigger1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -2816,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "prabhuteja.dev1@gmail.com",
+        "subject": "n8n-JobFlow",
+        "emailType": "text",
+        "message": "=HeyBuddy! Florida,Georgia,NewYork Jobs have been scraped ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        848,
+        128
+      ],
+      "id": "cd4f48fe-c58a-451f-a5ed-148a39a5ca16",
+      "name": "Send a message",
+      "webhookId": "6975a84d-91dd-452c-a3db-354b2c9543c6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "zTqR5k9uTKJuLbiq",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 45
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -400,
+        288
+      ],
+      "id": "b991c667-338c-4587-979a-2f4786828434",
+      "name": "Wait1",
+      "webhookId": "c60cbd22-de56-44c7-8651-6497d9762fd8"
+    },
+    {
+      "parameters": {
+        "content": "## Florida,Georgia,NewYork Jobs",
+        "height": 80,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2880,
+        144
+      ],
+      "id": "270de90f-ccd1-4ae1-8f1c-3ce98626c941",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        560,
+        128
+      ],
+      "id": "54eddea4-2b39-4e87-afdb-f20f8c8c8a2e",
+      "name": "Limit1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "📦 Collect Existing IDs1": {
+      "main": [
+        [
+          {
+            "node": "📥 Download Resume from Drive1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔬 Filter + Dedupe1": {
+      "main": [
+        [
+          {
+            "node": "🔀 Has New Jobs?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔀 Has New Jobs?1": {
+      "main": [
+        [
+          {
+            "node": "📝 Split Jobs into Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Split Jobs into Rows": {
+      "main": [
+        [
+          {
+            "node": "✅ Append to Google Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📋 Read Existing Job_IDs": {
+      "main": [
+        [
+          {
+            "node": "📦 Collect Existing IDs1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📥 Download Resume from Drive1": {
+      "main": [
+        [
+          {
+            "node": "📄 Extract Resume Text1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📄 Extract Resume Text1": {
+      "main": [
+        [
+          {
+            "node": "Message a model3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Parse ATS Response2": {
+      "main": [
+        [
+          {
+            "node": "➡️ Pass Through to Switch2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model4": {
+      "main": [
+        [
+          {
+            "node": "✅ Parse ATS Response2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch2": {
+      "main": [
+        [
+          {
+            "node": "Strong_Match2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MayBe2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Weak2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Strong_Match2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MayBe2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weak2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "🔬 Filter + Dedupe1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 JSearch - Java Spring Boot Jobs1": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items3": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🔍 JSearch - Java Spring Boot Jobs1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items4": {
+      "main": [
+        [
+          {
+            "node": "Limit1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Message a model4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "➡️ Pass Through to Switch2": {
+      "main": [
+        [
+          {
+            "node": "Switch2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏰WeekDay Mrng Trigger1": {
+      "main": [
+        [
+          {
+            "node": "📋 Read Existing Job_IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "9330e863-a3de-4377-834f-34fe97e166ec",
+  "meta": {
+    "instanceId": "a6cb30aebbccf412e91c6b7c390824f37c3e5787c66eac755e78b3f63c00d258"
+  },
+  "id": "EtssKmKMqBTJP2kM",
+  "tags": []
+}

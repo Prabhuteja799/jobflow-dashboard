@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Environment variables
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Google / OAuth secrets
+backend/oauth_credentials.json
+backend/service_account.json
+backend/token.json
+backend/token_drive.json
+backend/token_sheets.json
+backend/credentials.json
+
+# Generated PDFs
+backend/*.pdf
+
+# OS
+.DS_Store
+backend/.DS_Store
+
+# Claude
+.claude/

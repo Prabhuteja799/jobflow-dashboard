@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Google / OAuth secrets — never commit
+oauth_credentials.json
+service_account.json
+token.json
+token_drive.json
+token_sheets.json
+credentials.json
+
+# Generated PDFs
+*.pdf
+
+# OS
+.DS_Store
+
+# Claude
+.claude/
